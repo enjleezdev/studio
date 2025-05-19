@@ -32,20 +32,21 @@ const AppLogo = ({ className }: { className?: string }) => (
     viewBox="0 0 24 24"
     strokeLinecap="round"
     strokeLinejoin="round"
-    className={cn("h-48 w-48 text-primary", className)}
+    className={cn("h-48 w-48 text-primary", className)} // Increased size
   >
     {/* Outer Warehouse Shape */}
     <path
-        d="M3 21V10l9-6 9 6v11"
+        d="M3 21V10l9-6 9 6v11" // Simple warehouse roof and walls
         fill="none"
         stroke="currentColor"
         strokeWidth="1.5"
     />
+    {/* Removed bottom line of warehouse explicitly: "M3 21h18" */}
     {/* Inner Workflow Logo (scaled and centered) */}
     <g
-        transform="translate(12 15.5) scale(0.5) translate(-12 -12)"
+        transform="translate(12 15.5) scale(0.5) translate(-12 -12)" // Adjusted scale and position
         stroke="currentColor"
-        strokeWidth="2.5"
+        strokeWidth="2.5" // Thicker stroke for inner logo for visibility
         fill="none"
     >
         <rect width="8" height="8" x="3" y="3" rx="2"/>
@@ -59,10 +60,10 @@ const AppLogoAndBrand = () => {
   return (
     <div className="flex flex-col items-center justify-center py-8 text-center">
       <AppLogo />
-      <h1 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+      <h1 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl"> {/* Increased size and reduced margin */}
         Stock Pilot
       </h1>
-      <p className="mt-2 text-xs text-muted-foreground">
+      <p className="mt-2 text-xs text-muted-foreground"> {/* Reduced top margin */}
         powered by{' '}
         <Link href="https://www.enjleez.tech/" target="_blank" rel="noopener noreferrer" className="font-medium text-red-500 hover:text-red-600 underline">
           ENJLEEZ TECH
@@ -233,17 +234,17 @@ export default function WarehousesPage() {
           {warehouses.map((warehouse) => (
             <Card key={warehouse.id} className="flex flex-col">
               <Link href={`/warehouses/${warehouse.id}`} className="flex flex-col flex-grow hover:bg-muted/50 transition-colors rounded-t-lg">
-                <CardHeader className="flex-grow p-2"> 
+                <CardHeader className="flex-grow px-2 py-1"> 
                   <div className="flex items-start justify-between">
-                    <CardTitle className="text-lg mb-0.5 break-words">{warehouse.name}</CardTitle> 
-                    <Home className="h-5 w-5 text-muted-foreground shrink-0" />
+                    <CardTitle className="text-base font-medium mb-0 break-words">{warehouse.name}</CardTitle> 
+                    <Home className="h-4 w-4 text-muted-foreground shrink-0" />
                   </div>
                   {warehouse.description && (
                     <CardDescription className="text-xs text-muted-foreground line-clamp-2 break-words">{warehouse.description}</CardDescription> 
                   )}
                 </CardHeader>
               </Link>
-              <div className="flex items-center justify-end gap-1 p-1.5 pt-0 border-t mt-auto"> 
+              <div className="flex items-center justify-end gap-0.5 p-1 pt-0 border-t mt-auto"> 
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button variant="ghost" size="sm" onClick={() => handlePrintWarehouseReport(warehouse)} aria-label={`Print report for ${warehouse.name}`}>
