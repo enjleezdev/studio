@@ -44,8 +44,7 @@ export default function WarehouseDetailPage() {
   const [items, setItems] = React.useState<Item[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isAddItemDialogOpen, setIsAddItemDialogOpen] = React.useState(false);
-  const [editingItem, setEditingItem] = React.useState<Item | null>(null);
-  const [isEditItemDialogOpen, setIsEditItemDialogOpen] = React.useState(false);
+  // Removed editingItem and isEditItemDialogOpen state
 
   const itemForm = useForm<ItemFormValues>({
     resolver: zodResolver(itemFormSchema),
@@ -88,13 +87,10 @@ export default function WarehouseDetailPage() {
     } catch (error) {
       console.error("Failed to load data from localStorage", error);
       toast({ title: "Error", description: "Failed to load data.", variant: "destructive" });
-      // Potentially redirect if warehouse loading failed and not caught above
-      // Removed 'warehouse' from dependency array of useCallback for loadWarehouseAndItems to prevent loop
-      // if (!warehouse) router.push('/warehouses'); 
     } finally {
       setIsLoading(false);
     }
-  }, [warehouseId, router, toast]);
+  }, [warehouseId, router, toast]); // Removed 'warehouse' dependency
 
   React.useEffect(() => {
     if (warehouseId) {
@@ -123,7 +119,7 @@ export default function WarehouseDetailPage() {
       
       toast({ title: "Item Added", description: `${newItem.name} has been added to ${warehouse?.name}.` });
       setIsAddItemDialogOpen(false); 
-      itemForm.reset({ name: '', quantity: 1 }); 
+      itemForm.reset(); 
       loadWarehouseAndItems(); 
     } catch (error) {
       console.error("Failed to save item to localStorage", error);
@@ -131,51 +127,7 @@ export default function WarehouseDetailPage() {
     }
   }
 
-  function handleOpenEditDialog(itemToEdit: Item) {
-    setEditingItem(itemToEdit);
-    itemForm.reset({ 
-      name: itemToEdit.name,
-      quantity: itemToEdit.quantity,
-    });
-    setIsEditItemDialogOpen(true);
-  }
-
-  function onEditItemSubmit(data: ItemFormValues) {
-    if (!editingItem) return;
-
-    const updatedItem: Item = {
-      ...editingItem,
-      name: data.name,
-      quantity: data.quantity,
-      updatedAt: new Date().toISOString(),
-    };
-
-    try {
-      const existingItemsString = localStorage.getItem('items');
-      let existingItems: Item[] = existingItemsString ? JSON.parse(existingItemsString) : [];
-      
-      const itemIndex = existingItems.findIndex(item => item.id === editingItem.id);
-      if (itemIndex > -1) {
-        existingItems[itemIndex] = updatedItem;
-      } else {
-        // Fallback, should not happen if editingItem is correctly set
-        toast({ title: "Error", description: "Item to update not found.", variant: "destructive" });
-        return;
-      }
-      
-      localStorage.setItem('items', JSON.stringify(existingItems));
-      
-      toast({ title: "Item Updated", description: `${updatedItem.name} has been updated.` });
-      setIsEditItemDialogOpen(false);
-      setEditingItem(null);
-      itemForm.reset({ name: '', quantity: 1 }); // Reset form to default for "Add"
-      loadWarehouseAndItems();
-    } catch (error) {
-      console.error("Failed to update item in localStorage", error);
-      toast({ title: "Error", description: "Failed to update item. Please try again.", variant: "destructive" });
-    }
-  }
-
+  // Removed handleOpenEditDialog and onEditItemSubmit functions
 
   if (isLoading) {
     return <LoadingSpinner className="mx-auto my-10" size={48} />;
@@ -202,7 +154,7 @@ export default function WarehouseDetailPage() {
                 Back to Warehouses
               </Link>
             </Button>
-            <Button onClick={() => { itemForm.reset({ name: '', quantity: 1 }); setIsAddItemDialogOpen(true); }}>
+            <Button onClick={() => setIsAddItemDialogOpen(true)}>
               <PackagePlus className="mr-2 h-4 w-4" />
               Add Item
             </Button>
@@ -223,7 +175,7 @@ export default function WarehouseDetailPage() {
               description="Start by adding the first item to this warehouse."
               action={{
                 label: "Add Item",
-                onClick: () => { itemForm.reset({ name: '', quantity: 1 }); setIsAddItemDialogOpen(true); },
+                onClick: () => setIsAddItemDialogOpen(true),
                 icon: PackagePlus,
               }}
             />
@@ -243,7 +195,7 @@ export default function WarehouseDetailPage() {
                     <TableCell className="text-right">{item.quantity}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(item)} aria-label={`Edit ${item.name}`}>
+                        <Button variant="ghost" size="icon" onClick={() => alert(`Edit ${item.name} - coming soon!`)} aria-label={`Edit ${item.name}`}>
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => alert(`Delete ${item.name} - coming soon!`)} aria-label={`Delete ${item.name}`}>
@@ -307,67 +259,7 @@ export default function WarehouseDetailPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Item Dialog */}
-      <Dialog 
-        open={isEditItemDialogOpen} 
-        onOpenChange={(isOpen) => {
-          setIsEditItemDialogOpen(isOpen);
-          if (!isOpen) {
-            setEditingItem(null);
-            itemForm.reset({ name: '', quantity: 1 }); // Reset form for "Add" dialog
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Edit {editingItem?.name || 'Item'} in {warehouse.name}</DialogTitle>
-            <DialogDescription>
-              Update the details for this item.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...itemForm}>
-            <form onSubmit={itemForm.handleSubmit(onEditItemSubmit)} className="space-y-4 py-4">
-              <FormField
-                control={itemForm.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Item Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. Blue Widgets" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={itemForm.control}
-                name="quantity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Quantity</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder="e.g. 100" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button type="button" variant="outline" onClick={() => {
-                     setIsEditItemDialogOpen(false); 
-                     setEditingItem(null);
-                     itemForm.reset({ name: '', quantity: 1 });
-                    }}>Cancel</Button>
-                </DialogClose>
-                <Button type="submit">Save Changes</Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      {/* Edit Item Dialog removed */}
     </>
   );
 }
-
