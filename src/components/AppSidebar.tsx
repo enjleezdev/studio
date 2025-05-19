@@ -1,8 +1,9 @@
+
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Warehouse, Package, BarChart3, ListChecks, Bot, Settings, Users, ChevronDown, ChevronUp, LogOut, FileText, LayoutDashboard } from "lucide-react";
+import { Home, Warehouse, Package, BarChart3, ListChecks, Bot, Settings, Users, ChevronDown, ChevronUp, LogOut, FileText, LayoutDashboard, History } from "lucide-react"; // Added History
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
@@ -17,6 +18,7 @@ import {
   SidebarMenuSubButton,
   SidebarGroup,
   SidebarGroupLabel,
+  SidebarGroupContent, // Added missing import
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
@@ -40,14 +42,15 @@ export function AppSidebar() {
   const { state } = useSidebar();
 
   const isActive = (path: string) => {
-    if (path === "/inventory" && pathname.startsWith("/inventory")) return true;
+    // For dynamic paths like /inventory/[id], check if pathname starts with the base path
+    if (path.includes("[") && path.includes("]")) {
+      const basePath = path.substring(0, path.indexOf("["));
+      return pathname.startsWith(basePath);
+    }
+    if (path === "/reports" && pathname.startsWith("/reports")) return true; // Ensure reports and its sub-paths are active
     return pathname === path || (path !== "/" && pathname.startsWith(path));
   };
   
-  // This component might be used if we introduce warehouse selection within inventory link
-  // For now, inventory is accessed by clicking a warehouse from the /warehouses page.
-  // const inventoryPath = selectedWarehouseId ? `/inventory/${selectedWarehouseId}` : '/inventory';
-
 
   return (
     <Sidebar collapsible="icon" className="border-r">
@@ -68,15 +71,18 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          {/* Inventory link might be dynamic or context-dependent. For now, accessed via warehouses. */}
+          {/* Inventory link might be dynamic or context-dependent. 
+              For now, item details and history are accessed via warehouses/[warehouseId] page.
+              A dedicated top-level /inventory page might list all items across all warehouses,
+              which is a feature for later.
+          */}
           {/* <SidebarMenuItem>
             <SidebarMenuButton 
               asChild 
-              isActive={isActive(inventoryPath)}
+              isActive={isActive("/inventory")} // A general inventory overview if implemented
               tooltip={state === "collapsed" ? "Inventory" : undefined}
-              // disabled={!selectedWarehouseId} // Potentially disable if no warehouse selected
             >
-              <Link href={inventoryPath}>
+              <Link href="/inventory"> 
                 <Package />
                 <span>Inventory</span>
               </Link>
@@ -89,7 +95,7 @@ export function AppSidebar() {
               tooltip={state === "collapsed" ? "Reports" : undefined}
             >
               <Link href="/reports">
-                <FileText />
+                <FileText /> 
                 <span>Reports</span>
               </Link>
             </SidebarMenuButton>
@@ -106,6 +112,26 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+           {/* AI Features Menu (Example) */}
+           <SidebarGroup className="pt-4">
+            <SidebarGroupLabel className="group-data-[collapsible=icon]:justify-center">
+              AI Tools
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive("/ai/stock-suggestions")}
+                  tooltip={state === "collapsed" ? "Stock Suggestions" : undefined}
+                >
+                  <Link href="/ai/stock-suggestions">
+                    <Bot />
+                    <span>Stock Suggestions</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarGroupContent>
+          </SidebarGroup>
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
