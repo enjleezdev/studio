@@ -48,9 +48,9 @@ const AppLogoAndBrand = () => {
     <div className="flex flex-col items-center justify-center py-8 text-center">
       <AppLogo />
       <h1 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-        Flowgistic Pilot
+        Stock Pilot
       </h1>
-      <p className="mt-2 text-sm text-muted-foreground">
+      <p className="mt-2 text-xs text-muted-foreground"> {/* Changed text-sm to text-xs */}
         powered by{' '}
         <Link href="https://www.enjleez.tech/" target="_blank" rel="noopener noreferrer" className="font-medium text-red-500 hover:text-red-600 underline">
           ENJLEEZ TECH

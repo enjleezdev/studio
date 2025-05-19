@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Flowgistic Pilot - Inventory Management', // Updated title
-  description: 'Efficiently manage your warehouse inventory with Flowgistic Pilot.', // Updated description
+  title: 'Stock Pilot - Inventory Management', // Updated title
+  description: 'Efficiently manage your warehouse inventory with Stock Pilot.', // Updated description
 };
 
 export default function RootLayout({
