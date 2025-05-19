@@ -17,7 +17,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, PackagePlus, PackageSearch, Edit, Trash2, PlusCircle, MinusCircle, HistoryIcon } from 'lucide-react';
+import { ArrowLeft, PackagePlus, PackageSearch, Edit, Trash2, PlusCircle, MinusCircle, History as HistoryIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { EmptyState } from '@/components/EmptyState';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -103,25 +103,28 @@ export default function WarehouseDetailPage() {
       }
 
       const storedItemsString = localStorage.getItem('items');
+      let allItems: Item[] = [];
       if (storedItemsString) {
-        const allItems: Item[] = JSON.parse(storedItemsString);
-        const warehouseItems = allItems.filter(item => item.warehouseId === warehouseId);
-        setItems(warehouseItems);
-        if (selectedItemForHistory) {
-          const updatedSelectedItem = warehouseItems.find(item => item.id === selectedItemForHistory.id);
-          setSelectedItemForHistory(updatedSelectedItem || null);
-        }
+        allItems = JSON.parse(storedItemsString);
+      }
+      
+      const warehouseItems = allItems.filter(item => item.warehouseId === warehouseId);
+      setItems(warehouseItems);
+
+      if (selectedItemForHistory) {
+        const updatedSelectedItem = warehouseItems.find(item => item.id === selectedItemForHistory.id);
+        setSelectedItemForHistory(updatedSelectedItem || null);
       } else {
-        setItems([]);
         setSelectedItemForHistory(null);
       }
+
     } catch (error) {
       console.error("Failed to load data from localStorage", error);
       toast({ title: "Error", description: "Failed to load data.", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
-  }, [warehouseId, router, toast, selectedItemForHistory?.id]); // Added selectedItemForHistory.id
+  }, [warehouseId, router, toast]);
 
   React.useEffect(() => {
     if (warehouseId) {
@@ -135,7 +138,7 @@ export default function WarehouseDetailPage() {
 
     const now = new Date().toISOString();
     const initialHistoryEntry: HistoryEntry = {
-      id: Date.now().toString() + '-hist',
+      id: Date.now().toString() + '-hist-create',
       type: 'CREATE_ITEM',
       change: data.quantity,
       quantityBefore: 0,
@@ -192,7 +195,7 @@ export default function WarehouseDetailPage() {
 
     const now = new Date().toISOString();
     const newHistoryEntry: HistoryEntry = {
-      id: Date.now().toString() + '-hist',
+      id: Date.now().toString() + '-hist-adjust',
       type: adjustmentType,
       change: quantityChange,
       quantityBefore: itemForAdjustment.quantity,
@@ -219,8 +222,8 @@ export default function WarehouseDetailPage() {
         toast({ title: "Stock Updated", description: `Stock for ${updatedItem.name} has been updated.` });
         setIsStockAdjustmentDialogOpen(false);
         stockAdjustmentForm.reset();
-        setItemForAdjustment(null);
-        setAdjustmentType(null);
+        // setItemForAdjustment(null); // Keep itemForAdjustment to potentially show updated history
+        // setAdjustmentType(null);
         loadWarehouseAndItems();
       } else {
         toast({ title: "Error", description: "Item not found for update.", variant: "destructive" });
@@ -337,35 +340,38 @@ export default function WarehouseDetailPage() {
             </CardHeader>
             <CardContent>
                 {selectedItemForHistory && selectedItemForHistory.history && selectedItemForHistory.history.length > 0 ? (
-                <ScrollArea className="h-[400px]">
+                <ScrollArea className="h-[400px] rounded-md border">
                     <Table>
                     <TableHeader>
                         <TableRow>
-                        <TableHead>Date</TableHead>
+                        <TableHead className="w-[150px]">Date</TableHead>
                         <TableHead>Type</TableHead>
                         <TableHead className="text-right">Change</TableHead>
+                        <TableHead className="text-right">Before</TableHead>
                         <TableHead className="text-right">After</TableHead>
                         <TableHead>Comment</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {selectedItemForHistory.history.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((entry) => (
+                        {[...(selectedItemForHistory.history || [])].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((entry) => (
                         <TableRow key={entry.id}>
                             <TableCell className="text-xs">{format(new Date(entry.timestamp), "PPpp")}</TableCell>
                             <TableCell>
-                            <span className={`px-2 py-1 text-xs rounded-full ${
+                            <span className={`px-2 py-0.5 text-xs rounded-full ${
                                 entry.type === 'CREATE_ITEM' ? 'bg-blue-100 text-blue-700' :
                                 entry.type === 'ADD_STOCK' ? 'bg-green-100 text-green-700' :
                                 entry.type === 'CONSUME_STOCK' ? 'bg-red-100 text-red-700' :
+                                entry.type === 'ADJUST_STOCK' ? 'bg-yellow-100 text-yellow-700' :
                                 'bg-gray-100 text-gray-700'
                             }`}>
                                 {entry.type.replace('_', ' ')}
                             </span>
                             </TableCell>
-                            <TableCell className={`text-right font-medium ${entry.change > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            <TableCell className={`text-right font-medium ${entry.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {entry.change > 0 ? `+${entry.change}` : entry.change}
                             </TableCell>
-                            <TableCell className="text-right">{entry.quantityAfter}</TableCell>
+                            <TableCell className="text-right">{entry.quantityBefore}</TableCell>
+                            <TableCell className="text-right font-semibold">{entry.quantityAfter}</TableCell>
                             <TableCell className="text-xs">{entry.comment}</TableCell>
                         </TableRow>
                         ))}
@@ -434,9 +440,9 @@ export default function WarehouseDetailPage() {
       <Dialog open={isStockAdjustmentDialogOpen} onOpenChange={(isOpen) => {
         setIsStockAdjustmentDialogOpen(isOpen);
         if (!isOpen) {
-            setItemForAdjustment(null);
-            setAdjustmentType(null);
-            stockAdjustmentForm.reset();
+            // setItemForAdjustment(null); // Keep itemForAdjustment to allow history to pick up latest changes
+            // setAdjustmentType(null);
+            stockAdjustmentForm.reset(); // Reset form when dialog closes
         }
       }}>
         <DialogContent className="sm:max-w-[425px]">
