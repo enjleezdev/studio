@@ -121,7 +121,7 @@ export default function WarehouseDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [warehouseId, router, toast]); // Removed selectedItemForHistory?.id
+  }, [warehouseId, router, toast]);
 
   React.useEffect(() => {
     if (warehouseId) {
@@ -326,15 +326,15 @@ export default function WarehouseDetailPage() {
                     {selectedItemForHistory?.id === item.id && item.history && (
                       <TableRow className="bg-muted/20 hover:bg-muted/30">
                         <TableCell colSpan={3} className="p-0">
-                          <div className="p-4 space-y-3 w-full overflow-x-hidden max-w-full">
+                          <div className="p-4 space-y-3 w-full"> {/* Removed overflow-x-hidden and max-w-full */}
                             <h4 className="text-md font-semibold text-foreground">
                               Transaction History: <span className="font-bold">{item.name}</span>
                             </h4>
                             {item.history.length > 0 ? (
                               <ScrollArea className="w-full h-[250px] rounded-md border bg-card">
                                 <table className="text-xs border-collapse min-w-full">
-                                  <thead /* Removed sticky for simplicity while debugging layout */>
-                                    <tr className="bg-muted/40 dark:bg-muted/20">
+                                  <thead className="bg-muted/40 dark:bg-muted/20">
+                                    <tr>
                                       <th className="py-2 px-3 text-left font-medium text-muted-foreground whitespace-nowrap">Date</th>
                                       <th className="py-2 px-3 text-left font-medium text-muted-foreground whitespace-nowrap">Type</th>
                                       <th className="py-2 px-3 text-right font-medium text-muted-foreground whitespace-nowrap">Change</th>
@@ -493,4 +493,6 @@ export default function WarehouseDetailPage() {
     </>
   );
 }
+    
+
     
