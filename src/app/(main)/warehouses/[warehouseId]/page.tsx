@@ -9,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
 import ReactDOM from 'react-dom/client';
+import { arSA } from 'date-fns/locale';
 
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -18,14 +19,14 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, PackagePlus, PackageSearch, PlusCircle, MinusCircle, History as HistoryIcon, Trash2, Printer, Edit } from 'lucide-react';
+import { ArrowLeft, PackagePlus, PackageSearch, PlusCircle, MinusCircle, History as HistoryIcon, Printer, Edit, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { EmptyState } from '@/components/EmptyState';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import type { Item, Warehouse, HistoryEntry, ArchivedReport } from '@/lib/types';
 import { PrintableItemReport } from '@/components/PrintableItemReport';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { arSA } from 'date-fns/locale';
+
 
 const itemFormSchema = z.object({
   name: z.string().min(2, {
@@ -34,7 +35,7 @@ const itemFormSchema = z.object({
   quantity: z.coerce
     .number({ invalid_type_error: 'Quantity must be a number.' })
     .int('Quantity must be an integer.')
-    .min(0, { message: 'Quantity must be a non-negative number.'}), // Allow 0 for initial creation if needed
+    .min(0, { message: 'Quantity must be a non-negative number.'}),
 });
 
 type ItemFormValues = z.infer<typeof itemFormSchema>;
@@ -49,7 +50,6 @@ const stockAdjustmentFormSchema = z.object({
 
 type StockAdjustmentFormValues = z.infer<typeof stockAdjustmentFormSchema>;
 
-// Helper to format history types
 const translateHistoryType = (type: HistoryEntry['type']): string => {
   switch (type) {
     case 'CREATE_ITEM':
@@ -277,14 +277,11 @@ export default function WarehouseDetailPage() {
 
     setTimeout(() => {
       console.log("Attempting to print. Printable area content length:", printableArea.innerHTML.length);
-      if (printableArea.innerHTML.length < 50) { // Arbitrary small length to detect emptyish content
+      if (printableArea.innerHTML.length < 50) { 
           console.warn("Printable area seems empty or too short:", printableArea.innerHTML);
       }
       window.print();
       
-      // Cleanup and archiving should ideally happen after user interacts with print dialog
-      // but window.print() is blocking and doesn't have a reliable callback for completion.
-      // This timeout is for DOM cleanup and archiving.
       setTimeout(() => {
         root.unmount();
         if (document.body.contains(printableArea)) {
@@ -322,9 +319,8 @@ export default function WarehouseDetailPage() {
             variant: "destructive",
           });
         }
-      }, 500); // Delay for cleanup and archiving
-
-    }, 250); // Increased timeout before calling window.print()
+      }, 3000); // Increased delay for cleanup and archiving
+    }, 250); 
   };
 
 
@@ -443,13 +439,13 @@ export default function WarehouseDetailPage() {
                     {selectedItemForHistory?.id === item.id && item.history && (
                        <TableRow className="bg-muted/20 hover:bg-muted/30">
                          <TableCell className="p-0 overflow-hidden">
-                           <div className="h-full w-full overflow-auto"> {/* This div handles scrolling for its content */}
+                           <div className="h-full w-full overflow-auto"> 
                              <div className="p-4 space-y-3">
                                 <h4 className="text-md font-semibold text-foreground text-left">
                                 Transaction History: <span className="font-bold">{item.name}</span>
                                 </h4>
                                 {item.history.length > 0 ? (
-                                    <table className="text-xs border-collapse min-w-full text-left"> {/* min-w-full allows table to be wider than parent if needed */}
+                                    <table className="text-xs border-collapse min-w-full text-left"> 
                                     <thead className="sticky top-0 bg-muted/80 dark:bg-muted/60 backdrop-blur-sm z-10">
                                         <tr>
                                         <th className="py-2 px-3 text-left font-medium text-muted-foreground whitespace-nowrap">Date</th>
@@ -463,7 +459,7 @@ export default function WarehouseDetailPage() {
                                     <tbody>
                                         {[...(item.history || [])].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((entry) => (
                                         <tr key={entry.id} className="border-b border-border/50 last:border-b-0 hover:bg-muted/10 dark:hover:bg-muted/5">
-                                            <td className="py-1.5 px-3 whitespace-nowrap">{format(new Date(entry.timestamp), "PPpp", { locale: arSA })}</td>
+                                            <td className="py-1.5 px-3 whitespace-nowrap">{format(new Date(entry.timestamp), "PPpp")}</td>
                                             <td className="py-1.5 px-3 whitespace-nowrap">
                                             <span className={`px-2 py-0.5 rounded-full text-xs ${
                                                 entry.type === 'CREATE_ITEM' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' :
@@ -612,3 +608,4 @@ export default function WarehouseDetailPage() {
     </TooltipProvider>
   );
 }
+
