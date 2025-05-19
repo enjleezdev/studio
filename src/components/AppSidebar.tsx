@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Warehouse, Package, BarChart3, ListChecks, Bot, Settings, Users, ChevronDown, ChevronUp, LogOut, FileText, LayoutDashboard, History, Archive as ArchiveIcon } from "lucide-react"; // Added History, ArchiveIcon
+import { Home, Warehouse, Package, ListChecks, Bot, Settings, Users, ChevronDown, ChevronUp, LogOut, FileText, LayoutDashboard, History, Archive as ArchiveIcon } from "lucide-react"; // Added History, ArchiveIcon
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
@@ -25,17 +25,7 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
-const AppLogo = () => (
-  <div className="flex items-center gap-2 px-2 py-1">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-8 w-8 text-primary">
-      <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-      <path d="M2 17l10 5 10-5"/>
-      <path d="M2 12l10 5 10-5"/>
-    </svg>
-    <h1 className="text-xl font-semibold text-foreground">StockPilot</h1>
-  </div>
-);
-
+// AppLogo component is removed from here as it's moving to the warehouses page.
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -60,7 +50,7 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r">
       <SidebarHeader>
-        <AppLogo />
+        {/* AppLogo used to be here. It has been moved to the warehouses page. */}
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
@@ -146,18 +136,17 @@ export function AppSidebar() {
           )}>
             <Avatar className="size-8">
               <AvatarImage src="https://placehold.co/40x40.png" alt="User" data-ai-hint="user avatar" />
-              <AvatarFallback>SP</AvatarFallback>
+              <AvatarFallback>FP</AvatarFallback> {/* Updated Fallback */}
             </Avatar>
             <div className={cn(
               "flex flex-col transition-[opacity]",
               state === "collapsed" && "opacity-0 hidden"
             )}>
               <span className="text-sm font-medium text-sidebar-foreground">Admin User</span>
-              <span className="text-xs text-sidebar-foreground/70">admin@stockpilot.com</span>
+              <span className="text-xs text-sidebar-foreground/70">admin@flowgistic.com</span> {/* Updated email domain */}
             </div>
           </div>
       </SidebarFooter>
     </Sidebar>
   );
 }
-

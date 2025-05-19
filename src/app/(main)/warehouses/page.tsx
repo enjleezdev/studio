@@ -20,9 +20,28 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import type { Warehouse } from '@/lib/types'; // Import Warehouse type
+import type { Warehouse, Item } from '@/lib/types';
 
 interface StoredWarehouse extends Warehouse {}
+
+const AppLogoAndBrand = () => (
+  <div className="flex flex-col items-center mb-8 text-center">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-16 w-16 text-primary mb-3">
+      <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+      <path d="M2 17l10 5 10-5"/>
+      <path d="M2 12l10 5 10-5"/>
+    </svg>
+    <h1 className="text-3xl font-semibold text-primary">Flowgistic Pilot</h1>
+    <a 
+      href="https://www.enjleez.tech/" 
+      target="_blank" 
+      rel="noopener noreferrer" 
+      className="text-sm text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-500 underline mt-1"
+    >
+      powered by ENJLEEZ TECH
+    </a>
+  </div>
+);
 
 export default function WarehousesPage() {
   const [warehouses, setWarehouses] = React.useState<StoredWarehouse[]>([]);
@@ -34,7 +53,6 @@ export default function WarehousesPage() {
       const storedWarehousesString = localStorage.getItem('warehouses');
       if (storedWarehousesString) {
         const allStoredWarehouses: StoredWarehouse[] = JSON.parse(storedWarehousesString);
-        // Filter out archived warehouses
         const activeWarehouses = allStoredWarehouses.filter(wh => !wh.isArchived);
         setWarehouses(activeWarehouses);
       }
@@ -60,13 +78,12 @@ export default function WarehousesPage() {
         allWarehouses[warehouseIndex] = { ...allWarehouses[warehouseIndex], isArchived: true };
         localStorage.setItem('warehouses', JSON.stringify(allWarehouses));
         
-        // Also mark items associated with this warehouse as archived
         const existingItemsString = localStorage.getItem('items');
         if (existingItemsString) {
-            let existingItems = JSON.parse(existingItemsString);
-            existingItems = existingItems.map((item: { warehouseId: string; isArchived?: boolean }) => {
+            let existingItems: Item[] = JSON.parse(existingItemsString);
+            existingItems = existingItems.map((item) => {
                 if (item.warehouseId === selectedWarehouseForArchive.id) {
-                    return { ...item, isArchived: true };
+                    return { ...item, isArchived: true, updatedAt: new Date().toISOString() };
                 }
                 return item;
             });
@@ -75,7 +92,7 @@ export default function WarehousesPage() {
 
         toast({ title: "Warehouse Archived", description: `${selectedWarehouseForArchive.name} and its items have been moved to the archive.` });
         setSelectedWarehouseForArchive(null);
-        loadWarehouses(); // Reload to update the list
+        loadWarehouses(); 
       } else {
         toast({ title: "Error", description: "Warehouse not found for archiving.", variant: "destructive" });
       }
@@ -91,6 +108,7 @@ export default function WarehousesPage() {
         setSelectedWarehouseForArchive(null);
       }
     }}>
+      <AppLogoAndBrand /> {/* New branding element added here */}
       <PageHeader
         title="Warehouses"
         description="Manage all your storage locations from here."
@@ -147,7 +165,7 @@ export default function WarehousesPage() {
       {selectedWarehouseForArchive && (
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure you want to archive "{selectedWarehouseForArchive.name}"?</AlertDialogTitle>
+            <AlertDialogTitle>Archive "{selectedWarehouseForArchive.name}"?</AlertDialogTitle>
             <AlertDialogDescription>
               This action will move the warehouse and all its items to the archive. You can restore them later.
             </AlertDialogDescription>
