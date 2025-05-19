@@ -99,7 +99,6 @@ export default function ReportsPage() {
 
       flattened.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setAllFlattenedTransactions(flattened);
-      // setFilteredTransactions(flattened); // Filtering will happen in the next useEffect
 
       const storedArchivedReportsString = localStorage.getItem('archivedReports');
       if (storedArchivedReportsString) {
@@ -114,7 +113,7 @@ export default function ReportsPage() {
   }, [toast]);
 
   React.useEffect(() => {
-    let transactions = [...allFlattenedTransactions]; // Start with a copy of all transactions
+    let transactions = [...allFlattenedTransactions]; 
 
     if (selectedWarehouseId && selectedWarehouseId !== "all_warehouses_option_value_placeholder_for_clear") {
       transactions = transactions.filter(t => t.warehouseId === selectedWarehouseId);
@@ -122,10 +121,7 @@ export default function ReportsPage() {
         transactions = transactions.filter(t => t.itemId === selectedItemId);
       }
     }
-    // Note: If no warehouse is selected, but an item is, this current logic won't filter by item.
-    // This might need adjustment if global item filtering is desired without warehouse context.
-
-
+    
     if (startDate) {
       const startOfDay = new Date(startDate);
       startOfDay.setHours(0, 0, 0, 0);
@@ -145,8 +141,9 @@ export default function ReportsPage() {
     } else {
         setSelectedWarehouseId(warehouseId);
     }
-    setSelectedItemId(null); // Reset item when warehouse changes
-    form.setValue('itemId', "all_items_option_value_placeholder_for_clear"); // Reset form value
+    setSelectedItemId(null); 
+    // This is a mock form object, if using react-hook-form, use its setValue
+    // form.setValue('itemId', "all_items_option_value_placeholder_for_clear"); 
   };
 
   const handleItemChange = (itemId: string) => {
@@ -156,11 +153,6 @@ export default function ReportsPage() {
         setSelectedItemId(itemId);
     }
   };
-
-  // Dummy form for Select components if not using react-hook-form for them
-  // This is just to satisfy the Select component's need for a form context if used within one.
-  // Or ensure Selects are not within a Form provider if not needed.
-  const form = { setValue: (name: string, value: string) => {} }; // Simplified mock
 
   const getCurrentReportTitle = () => {
     let title = "All Transactions";
@@ -172,10 +164,14 @@ export default function ReportsPage() {
       if (selectedItm) {
         title += ` - ${selectedItm.name}`;
       }
-    } else if (selectedItm) {
-      // This case is less likely with current dropdown logic but good to handle
-      title = `Transactions for ${selectedItm.name}`;
+    } else if (selectedItm && selectedWarehouseId === "all_warehouses_option_value_placeholder_for_clear") {
+      // If "All Warehouses" is selected but a specific item (potentially from any warehouse) is chosen
+      // This part of title generation might need refinement based on how global item selection should behave.
+      // For now, it implies item from any warehouse if item is selected and warehouse is "All".
+      const itemFromAll = allItems.find(i => i.id === selectedItemId);
+      if (itemFromAll) title = `Transactions for ${itemFromAll.name} (All Warehouses)`;
     }
+
 
     if (startDate || endDate) {
       let dateRange = '';
@@ -207,7 +203,7 @@ export default function ReportsPage() {
           {getCurrentReportTitle()}
         </h3>
         <div className="h-[400px] w-full overflow-x-auto rounded-md border">
-          <table className="text-xs border-collapse min-w-full">
+          <table className="text-xs border-collapse">
             <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
               <tr>
                 <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Date</th>
@@ -271,7 +267,7 @@ export default function ReportsPage() {
       <PrintableTransactionsReport
         transactions={filteredTransactions}
         reportTitle={getCurrentReportTitle()}
-        printedBy="Admin User" // Replace with actual user if available
+        printedBy="Admin User" 
         printDate={new Date()}
       />
     );
@@ -298,12 +294,12 @@ export default function ReportsPage() {
       const itemForPrinting: Item = {
           id: report.itemId,
           name: report.itemName,
-          warehouseId: report.warehouseId, // Assuming warehouseId is stored in report
-          quantity: report.historySnapshot.length > 0 ? report.historySnapshot[0].quantityAfter : 0, // Example: last known quantity
+          warehouseId: report.warehouseId, 
+          quantity: report.historySnapshot.length > 0 ? report.historySnapshot[0].quantityAfter : 0, 
           createdAt: report.historySnapshot.length > 0 ? report.historySnapshot[report.historySnapshot.length -1].timestamp : report.printedAt,
           updatedAt: report.historySnapshot.length > 0 ? report.historySnapshot[0].timestamp : report.printedAt,
           history: report.historySnapshot,
-          isArchived: true, // It's an archived report
+          isArchived: true, 
       };
       root.render(
         <PrintableItemReport
@@ -317,10 +313,10 @@ export default function ReportsPage() {
       const warehouseForPrinting: Warehouse = {
         id: report.warehouseId,
         name: report.warehouseName,
-        description: report.warehouseDescription || '', // Assuming description might be stored
-        createdAt: new Date().toISOString(), // Placeholder, ideally stored
-        updatedAt: new Date().toISOString(), // Placeholder, ideally stored
-        isArchived: true, // It's an archived report
+        description: report.warehouseDescription || '', 
+        createdAt: new Date().toISOString(), 
+        updatedAt: new Date().toISOString(), 
+        isArchived: true, 
       };
       root.render(
         <PrintableWarehouseReport
@@ -356,7 +352,7 @@ export default function ReportsPage() {
         description="View transaction history and stock levels."
       />
       <div className="space-y-6">
-        <Card className="overflow-hidden"> {/* Added overflow-hidden to the Card */}
+        <Card className="overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle>Transportations</CardTitle>
@@ -480,7 +476,7 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden"> {/* Added overflow-hidden to the Card */}
+        <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle>Archived Printed Reports</CardTitle>
             <CardDescription>View and re-print previously generated reports.</CardDescription>
@@ -495,11 +491,11 @@ export default function ReportsPage() {
               />
             ) : (
               <div className="h-[400px] w-full overflow-x-auto rounded-md border">
-                <table className="text-xs border-collapse min-w-full">
+                <table className="text-xs border-collapse">
                   <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
                     <tr>
                       <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Report For</th>
-                      <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words text-xs">Type</th>
+                      <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Type</th>
                       <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Printed By</th>
                       <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Printed At</th>
                       <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">Actions</th>
@@ -512,7 +508,7 @@ export default function ReportsPage() {
                           {report.reportType === 'ITEM' ? report.itemName : report.warehouseName}
                           {report.reportType === 'ITEM' && <span className="text-xs text-muted-foreground block"> (in {report.warehouseName})</span>}
                         </td>
-                        <td className="py-3 px-4 break-words text-xs">
+                        <td className="py-3 px-4 break-words">
                           {report.reportType === 'ITEM' ? 'Item Details' : report.reportType === 'WAREHOUSE' ? 'Warehouse Summary' : 'Transactions'}
                         </td>
                         <td className="py-3 px-4 whitespace-nowrap">{report.printedBy}</td>
@@ -535,3 +531,5 @@ export default function ReportsPage() {
     </>
   );
 }
+
+    
