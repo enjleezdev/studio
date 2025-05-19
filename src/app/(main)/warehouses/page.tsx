@@ -5,7 +5,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Home, Edit, Trash2 } from "lucide-react"; // Added Edit and Trash2
+import { PlusCircle, Home, Edit, Trash2 } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import {
   AlertDialog,
@@ -40,9 +40,9 @@ export default function WarehousesPage() {
       }
     } catch (error) {
       console.error("Failed to load warehouses from localStorage", error);
-      // Optionally, show a toast error
+      toast({ title: "Error", description: "Failed to load warehouses.", variant: "destructive" });
     }
-  }, []);
+  }, [toast]);
 
   const handleDeleteWarehouse = () => {
     if (!selectedWarehouseForDelete) return;
@@ -52,7 +52,7 @@ export default function WarehousesPage() {
       localStorage.setItem('warehouses', JSON.stringify(updatedWarehouses));
       setWarehouses(updatedWarehouses);
       toast({ title: "Warehouse Deleted", description: `${selectedWarehouseForDelete.name} has been deleted.` });
-      setSelectedWarehouseForDelete(null); // Close dialog
+      setSelectedWarehouseForDelete(null); // Close dialog by resetting state
     } catch (error) {
       console.error("Failed to delete warehouse from localStorage", error);
       toast({ title: "Error", description: "Failed to delete warehouse.", variant: "destructive" });
@@ -60,7 +60,11 @@ export default function WarehousesPage() {
   };
 
   return (
-    <>
+    <AlertDialog open={!!selectedWarehouseForDelete} onOpenChange={(isOpen) => {
+      if (!isOpen) {
+        setSelectedWarehouseForDelete(null);
+      }
+    }}>
       <PageHeader
         title="Warehouses"
         description="Manage all your storage locations from here."
@@ -99,8 +103,7 @@ export default function WarehousesPage() {
               </CardHeader>
               <CardContent className="pt-2">
                 <p className="text-sm text-muted-foreground">
-                  {/* Placeholder for item count or other info */}
-                  Items: 0 {/* Or manage items for this warehouse */}
+                  Items: 0 
                 </p>
               </CardContent>
               <div className="flex items-center justify-end gap-2 p-4 pt-0 border-t mt-auto">
@@ -117,24 +120,23 @@ export default function WarehousesPage() {
           ))}
         </div>
       )}
+      
       {selectedWarehouseForDelete && (
-        <AlertDialog open={!!selectedWarehouseForDelete} onOpenChange={(open) => !open && setSelectedWarehouseForDelete(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure you want to delete &quot;{selectedWarehouseForDelete.name}&quot;?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the warehouse and all associated data.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setSelectedWarehouseForDelete(null)}>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDeleteWarehouse} className="bg-destructive hover:bg-destructive/90">
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete &quot;{selectedWarehouseForDelete.name}&quot;?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the warehouse and all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setSelectedWarehouseForDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteWarehouse} className="bg-destructive hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
       )}
-    </>
+    </AlertDialog>
   );
 }
