@@ -1,5 +1,4 @@
 
-
 export interface Warehouse {
   id: string;
   name: string;
@@ -25,7 +24,7 @@ export type HistoryEntryType =
   | 'ADJUST_STOCK'
   | 'CREATE_WAREHOUSE'
   | 'UPDATE_WAREHOUSE'
-  | 'DELETE_WAREHOUSE'; // This type might be deprecated in favor of archiving
+  | 'DELETE_WAREHOUSE';
 
 export interface HistoryEntry {
   id: string;
@@ -38,12 +37,14 @@ export interface HistoryEntry {
 }
 
 export interface ArchivedReport {
-  id: string; // e.g., itemID-timestamp
+  id: string; // e.g., itemID-timestamp or warehouseID-timestamp
+  reportType: 'ITEM' | 'WAREHOUSE';
   warehouseId: string;
   warehouseName: string;
-  itemId: string;
-  itemName: string;
+  itemId?: string; // Optional, only for item reports
+  itemName?: string; // Optional, only for item reports
   printedBy: string; // User who printed
   printedAt: string; // ISO string date of printing
-  historySnapshot: HistoryEntry[]; // A snapshot of the item's history at the time of printing
+  historySnapshot?: HistoryEntry[]; // Optional, only for item reports
+  itemsSnapshot?: { name: string; quantity: number }[]; // Optional, only for warehouse reports
 }

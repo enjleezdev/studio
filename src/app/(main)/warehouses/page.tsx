@@ -3,10 +3,11 @@
 
 import * as React from 'react';
 import Link from "next/link";
+import ReactDOM from 'react-dom/client';
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Home, Edit, Trash2 } from "lucide-react";
+import { PlusCircle, Home, Trash2, Printer } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import {
   AlertDialog,
@@ -20,31 +21,31 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import type { Warehouse, Item } from '@/lib/types';
+import type { Warehouse, Item, ArchivedReport } from '@/lib/types';
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { PrintableWarehouseReport } from '@/components/PrintableWarehouseReport';
 
-// Updated App Logo component
 const AppLogo = ({ className }: { className?: string }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 24 24"
     strokeLinecap="round"
     strokeLinejoin="round"
-    className={cn("h-48 w-48 text-primary", className)} // Increased size from h-12 w-12
+    className={cn("h-48 w-48 text-primary", className)}
   >
     {/* Outer Warehouse Shape */}
     <path
-        d="M3 21V10l9-6 9 6v11" 
+        d="M3 21V10l9-6 9 6v11"
         fill="none"
         stroke="currentColor"
         strokeWidth="1.5"
     />
-
-    {/* Inner Workflow Logo (original paths, scaled and centered) */}
+    {/* Inner Workflow Logo (scaled and centered) */}
     <g
-        transform="translate(12 15.5) scale(0.5) translate(-12 -12)" 
+        transform="translate(12 15.5) scale(0.5) translate(-12 -12)"
         stroke="currentColor"
-        strokeWidth="2.5" 
+        strokeWidth="2.5"
         fill="none"
     >
         <rect width="8" height="8" x="3" y="3" rx="2"/>
@@ -54,7 +55,6 @@ const AppLogo = ({ className }: { className?: string }) => (
   </svg>
 );
 
-// Combined Logo and Brand for the main page
 const AppLogoAndBrand = () => {
   return (
     <div className="flex flex-col items-center justify-center py-8 text-center">
@@ -62,7 +62,7 @@ const AppLogoAndBrand = () => {
       <h1 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
         Stock Pilot
       </h1>
-      <p className="mt-2 text-xs text-muted-foreground"> 
+      <p className="mt-2 text-xs text-muted-foreground">
         powered by{' '}
         <Link href="https://www.enjleez.tech/" target="_blank" rel="noopener noreferrer" className="font-medium text-red-500 hover:text-red-600 underline">
           ENJLEEZ TECH
@@ -132,7 +132,73 @@ export default function WarehousesPage() {
     }
   };
 
+  const handlePrintWarehouseReport = (warehouseToPrint: Warehouse) => {
+    const storedItemsString = localStorage.getItem('items');
+    let allItems: Item[] = [];
+    if (storedItemsString) {
+      allItems = JSON.parse(storedItemsString);
+    }
+    const warehouseItems = allItems
+      .filter(item => item.warehouseId === warehouseToPrint.id && !item.isArchived)
+      .map(item => ({ name: item.name, quantity: item.quantity }));
+
+    const printableArea = document.createElement('div');
+    printableArea.id = 'printable-report-area';
+    document.body.appendChild(printableArea);
+
+    const root = ReactDOM.createRoot(printableArea);
+    root.render(
+      <PrintableWarehouseReport
+        warehouse={warehouseToPrint}
+        items={warehouseItems}
+        printedBy="Admin User" 
+        printDate={new Date()}
+      />
+    );
+
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => {
+        root.unmount();
+        if (document.body.contains(printableArea)) {
+          document.body.removeChild(printableArea);
+        }
+
+        const now = new Date();
+        const archivedReport: ArchivedReport = {
+          id: `${warehouseToPrint.id}-wh-report-${now.getTime()}`,
+          reportType: 'WAREHOUSE',
+          warehouseId: warehouseToPrint.id,
+          warehouseName: warehouseToPrint.name,
+          printedBy: "Admin User",
+          printedAt: now.toISOString(),
+          itemsSnapshot: warehouseItems,
+        };
+
+        try {
+          const existingReportsString = localStorage.getItem('archivedReports');
+          const existingReports: ArchivedReport[] = existingReportsString ? JSON.parse(existingReportsString) : [];
+          existingReports.push(archivedReport);
+          localStorage.setItem('archivedReports', JSON.stringify(existingReports));
+          toast({
+            title: "Report Archived",
+            description: `Report for warehouse ${warehouseToPrint.name} has been saved.`,
+          });
+        } catch (error) {
+          console.error("Failed to archive warehouse report:", error);
+          toast({
+            title: "Archiving Error",
+            description: "Failed to save warehouse report.",
+            variant: "destructive",
+          });
+        }
+      }, 3000); 
+    }, 250); 
+  };
+
+
   return (
+    <TooltipProvider>
     <AlertDialog open={!!selectedWarehouseForArchive} onOpenChange={(isOpen) => {
       if (!isOpen) {
         setSelectedWarehouseForArchive(null);
@@ -163,28 +229,38 @@ export default function WarehousesPage() {
           }}
         />
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {warehouses.map((warehouse) => (
             <Card key={warehouse.id} className="flex flex-col">
               <Link href={`/warehouses/${warehouse.id}`} className="flex flex-col flex-grow hover:bg-muted/50 transition-colors rounded-t-lg">
-                <CardHeader className="flex-grow">
-                  <div className="flex items-center justify-between">
-                    <CardTitle>{warehouse.name}</CardTitle>
-                    <Home className="h-5 w-5 text-muted-foreground" />
+                <CardHeader className="flex-grow p-4"> 
+                  <div className="flex items-start justify-between">
+                    <CardTitle className="text-xl mb-1 break-words">{warehouse.name}</CardTitle> 
+                    <Home className="h-5 w-5 text-muted-foreground shrink-0" />
                   </div>
                   {warehouse.description && (
-                    <CardDescription className="mt-1 text-sm text-muted-foreground line-clamp-2">{warehouse.description}</CardDescription>
+                    <CardDescription className="text-xs text-muted-foreground line-clamp-3 break-words">{warehouse.description}</CardDescription> 
                   )}
                 </CardHeader>
               </Link>
-              <div className="flex items-center justify-end gap-2 p-4 pt-0 border-t mt-auto">
-                <Button variant="ghost" size="icon" onClick={() => alert(`Editing ${warehouse.name} - coming soon!`)} aria-label={`Edit ${warehouse.name}`}>
-                  <Edit className="h-4 w-4" />
-                </Button>
+              <div className="flex items-center justify-end gap-1 p-3 pt-0 border-t mt-auto"> 
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" onClick={() => handlePrintWarehouseReport(warehouse)} aria-label={`Print report for ${warehouse.name}`}>
+                      <Printer className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent><p>Print Warehouse Report</p></TooltipContent>
+                </Tooltip>
                 <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setSelectedWarehouseForArchive(warehouse)} aria-label={`Archive ${warehouse.name}`}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                   <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setSelectedWarehouseForArchive(warehouse)} aria-label={`Archive ${warehouse.name}`}>
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Archive Warehouse</p></TooltipContent>
+                   </Tooltip>
                 </AlertDialogTrigger>
               </div>
             </Card>
@@ -209,5 +285,7 @@ export default function WarehousesPage() {
         </AlertDialogContent>
       )}
     </AlertDialog>
+    </TooltipProvider>
   );
 }
+

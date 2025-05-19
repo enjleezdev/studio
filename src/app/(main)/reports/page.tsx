@@ -2,7 +2,6 @@
 'use client';
 
 import * as React from 'react';
-import Link from 'next/link';
 import ReactDOM from 'react-dom/client';
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,15 +29,21 @@ import {
 } from "@/components/ui/select";
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { PrintableItemReport } from '@/components/PrintableItemReport';
+import { PrintableWarehouseReport } from '@/components/PrintableWarehouseReport'; // Import new component
 
-// Helper to format history types - simple space replacement
 const formatHistoryType = (type: HistoryEntry['type']): string => {
-  return type.replace(/_/g, ' ');
+  switch (type) {
+    case 'CREATE_ITEM': return 'Item Created';
+    case 'ADD_STOCK': return 'Stock Added';
+    case 'CONSUME_STOCK': return 'Stock Consumed';
+    case 'ADJUST_STOCK': return 'Stock Adjusted';
+    default: return type.replace(/_/g, ' ');
+  }
 };
 
 export default function ReportsPage() {
   const [warehouses, setWarehouses] = React.useState<Warehouse[]>([]);
-  const [items, setItems] = React.useState<Item[]>([]); // All items
+  const [items, setItems] = React.useState<Item[]>([]);
   const [archivedReports, setArchivedReports] = React.useState<ArchivedReport[]>([]);
   const [selectedWarehouseId, setSelectedWarehouseId] = React.useState<string | null>(null);
   const [selectedItemId, setSelectedItemId] = React.useState<string | null>(null);
@@ -83,7 +88,7 @@ export default function ReportsPage() {
     setSelectedItemId(itemId);
   };
 
-  const renderItemHistoryTable = (history: HistoryEntry[], title: string, currentStock?: number) => {
+  const renderItemHistoryTable = (history: HistoryEntry[] | undefined, title: string, currentStock?: number) => {
     if (!history || history.length === 0) {
       return <p className="text-sm text-muted-foreground">No transaction history for this item.</p>;
     }
@@ -103,7 +108,7 @@ export default function ReportsPage() {
                 <TableHead className="text-right whitespace-nowrap">Change</TableHead>
                 <TableHead className="text-right whitespace-nowrap">Before</TableHead>
                 <TableHead className="text-right whitespace-nowrap">After</TableHead>
-                <TableHead className="whitespace-normal">Comment</TableHead>
+                <TableHead className="whitespace-normal break-words">Comment</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -140,28 +145,47 @@ export default function ReportsPage() {
     const printableArea = document.createElement('div');
     printableArea.id = 'printable-report-area';
     document.body.appendChild(printableArea);
-
     const root = ReactDOM.createRoot(printableArea);
-    // Simulate the Item structure expected by PrintableItemReport
-    const itemForPrinting: Item = {
-        id: report.itemId,
-        name: report.itemName,
-        warehouseId: report.warehouseId,
-        quantity: report.historySnapshot.length > 0 ? report.historySnapshot[0].quantityAfter : 0, // Best guess for current quantity
-        createdAt: report.historySnapshot.length > 0 ? report.historySnapshot[report.historySnapshot.length -1].timestamp : report.printedAt,
-        updatedAt: report.historySnapshot.length > 0 ? report.historySnapshot[0].timestamp : report.printedAt,
-        history: report.historySnapshot,
-        isArchived: true, // It's an archived report
-    };
 
-    root.render(
-      <PrintableItemReport
-        warehouseName={report.warehouseName}
-        item={itemForPrinting}
-        printedBy={report.printedBy}
-        printDate={new Date(report.printedAt)}
-      />
-    );
+    if (report.reportType === 'ITEM' && report.itemId && report.itemName && report.historySnapshot) {
+      const itemForPrinting: Item = {
+          id: report.itemId,
+          name: report.itemName,
+          warehouseId: report.warehouseId,
+          quantity: report.historySnapshot.length > 0 ? report.historySnapshot[0].quantityAfter : 0,
+          createdAt: report.historySnapshot.length > 0 ? report.historySnapshot[report.historySnapshot.length -1].timestamp : report.printedAt,
+          updatedAt: report.historySnapshot.length > 0 ? report.historySnapshot[0].timestamp : report.printedAt,
+          history: report.historySnapshot,
+          isArchived: true,
+      };
+      root.render(
+        <PrintableItemReport
+          warehouseName={report.warehouseName}
+          item={itemForPrinting}
+          printedBy={report.printedBy}
+          printDate={new Date(report.printedAt)}
+        />
+      );
+    } else if (report.reportType === 'WAREHOUSE' && report.itemsSnapshot) {
+      const warehouseForPrinting: Warehouse = {
+        id: report.warehouseId,
+        name: report.warehouseName,
+      };
+      root.render(
+        <PrintableWarehouseReport
+          warehouse={warehouseForPrinting}
+          items={report.itemsSnapshot}
+          printedBy={report.printedBy}
+          printDate={new Date(report.printedAt)}
+        />
+      );
+    } else {
+      toast({ title: "Error", description: "Cannot re-print report. Invalid report data.", variant: "destructive"});
+      if (document.body.contains(printableArea)) {
+        document.body.removeChild(printableArea);
+      }
+      return;
+    }
 
     setTimeout(() => {
       window.print();
@@ -170,8 +194,8 @@ export default function ReportsPage() {
         if (document.body.contains(printableArea)) {
           document.body.removeChild(printableArea);
         }
-      }, 100); // Ensure unmount happens after print dialog is likely closed
-    }, 250); // Allow time for render
+      }, 100);
+    }, 250);
   };
 
 
@@ -272,8 +296,8 @@ export default function ReportsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="break-words">Item Name</TableHead>
-                      <TableHead className="break-words">Warehouse</TableHead>
+                      <TableHead className="break-words">Report For</TableHead>
+                      <TableHead className="break-words">Type</TableHead>
                       <TableHead className="whitespace-nowrap">Printed By</TableHead>
                       <TableHead className="whitespace-nowrap">Printed At</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
@@ -282,8 +306,13 @@ export default function ReportsPage() {
                   <TableBody>
                     {archivedReports.sort((a,b) => new Date(b.printedAt).getTime() - new Date(a.printedAt).getTime()).map((report) => (
                       <TableRow key={report.id}>
-                        <TableCell className="font-medium break-words">{report.itemName}</TableCell>
-                        <TableCell className="break-words">{report.warehouseName}</TableCell>
+                        <TableCell className="font-medium break-words">
+                          {report.reportType === 'ITEM' ? report.itemName : report.warehouseName}
+                          {report.reportType === 'ITEM' && <span className="text-xs text-muted-foreground block"> (in {report.warehouseName})</span>}
+                        </TableCell>
+                        <TableCell className="break-words text-xs">
+                          {report.reportType === 'ITEM' ? 'Item Details' : 'Warehouse Summary'}
+                        </TableCell>
                         <TableCell className="whitespace-nowrap">{report.printedBy}</TableCell>
                         <TableCell className="text-xs whitespace-nowrap">{format(new Date(report.printedAt), 'P p')}</TableCell>
                         <TableCell className="text-right">
@@ -303,3 +332,4 @@ export default function ReportsPage() {
     </>
   );
 }
+
