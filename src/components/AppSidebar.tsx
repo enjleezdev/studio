@@ -18,7 +18,7 @@ import {
   SidebarMenuSubButton,
   SidebarGroup,
   SidebarGroupLabel,
-  SidebarGroupContent, 
+  SidebarGroupContent,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
