@@ -18,8 +18,8 @@ import {
   SidebarMenuSubButton,
   SidebarGroup,
   SidebarGroupLabel,
-  SidebarGroupContent, // Added missing import
-  useSidebar,
+  SidebarGroupContent,
+  useSidebar, // Import useSidebar
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -39,7 +39,7 @@ const AppLogo = () => (
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar(); // Get isMobile and setOpenMobile
 
   const isActive = (path: string) => {
     // For dynamic paths like /inventory/[id], check if pathname starts with the base path
@@ -51,6 +51,11 @@ export function AppSidebar() {
     return pathname === path || (path !== "/" && pathname.startsWith(path));
   };
   
+  const handleLinkClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r">
@@ -64,6 +69,7 @@ export function AppSidebar() {
               asChild
               isActive={isActive("/warehouses")}
               tooltip={state === "collapsed" ? "Warehouses" : undefined}
+              onClick={handleLinkClick}
             >
               <Link href="/warehouses">
                 <Warehouse />
@@ -81,6 +87,7 @@ export function AppSidebar() {
               asChild 
               isActive={isActive("/inventory")} // A general inventory overview if implemented
               tooltip={state === "collapsed" ? "Inventory" : undefined}
+              onClick={handleLinkClick}
             >
               <Link href="/inventory"> 
                 <Package />
@@ -93,6 +100,7 @@ export function AppSidebar() {
               asChild
               isActive={isActive("/reports")}
               tooltip={state === "collapsed" ? "Reports" : undefined}
+              onClick={handleLinkClick}
             >
               <Link href="/reports">
                 <FileText /> 
@@ -105,6 +113,7 @@ export function AppSidebar() {
               asChild
               isActive={isActive("/stocktake")}
               tooltip={state === "collapsed" ? "Stocktake" : undefined}
+              onClick={handleLinkClick}
             >
               <Link href="/stocktake">
                 <ListChecks />
@@ -123,6 +132,7 @@ export function AppSidebar() {
                   asChild
                   isActive={isActive("/ai/stock-suggestions")}
                   tooltip={state === "collapsed" ? "Stock Suggestions" : undefined}
+                  onClick={handleLinkClick}
                 >
                   <Link href="/ai/stock-suggestions">
                     <Bot />
