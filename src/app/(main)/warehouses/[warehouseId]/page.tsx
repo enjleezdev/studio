@@ -111,11 +111,11 @@ export default function WarehouseDetailPage() {
       const warehouseItems = allItems.filter(item => item.warehouseId === warehouseId);
       setItems(warehouseItems);
 
+      // If an item was selected for history, refresh its data from the newly loaded items
+      // This ensures the history view is up-to-date after an item modification
       if (selectedItemForHistory) {
         const updatedSelectedItem = warehouseItems.find(item => item.id === selectedItemForHistory.id);
         setSelectedItemForHistory(updatedSelectedItem || null);
-      } else {
-        setSelectedItemForHistory(null);
       }
 
     } catch (error) {
@@ -124,7 +124,7 @@ export default function WarehouseDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [warehouseId, router, toast]);
+  }, [warehouseId, router, toast]); // Removed selectedItemForHistory?.id
 
   React.useEffect(() => {
     if (warehouseId) {
@@ -222,8 +222,6 @@ export default function WarehouseDetailPage() {
         toast({ title: "Stock Updated", description: `Stock for ${updatedItem.name} has been updated.` });
         setIsStockAdjustmentDialogOpen(false);
         stockAdjustmentForm.reset();
-        // setItemForAdjustment(null); // Keep itemForAdjustment to potentially show updated history
-        // setAdjustmentType(null);
         loadWarehouseAndItems();
       } else {
         toast({ title: "Error", description: "Item not found for update.", variant: "destructive" });
@@ -296,16 +294,16 @@ export default function WarehouseDetailPage() {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead className="text-right">Quantity</TableHead>
-                    <TableHead className="w-[180px] text-right">Actions</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {items.map((item) => (
                     <TableRow key={item.id} className={selectedItemForHistory?.id === item.id ? 'bg-muted/50' : ''}>
-                      <TableCell className="font-medium">{item.name}</TableCell>
+                      <TableCell className="font-medium break-words">{item.name}</TableCell>
                       <TableCell className="text-right">{item.quantity}</TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
+                        <div className="flex justify-end gap-1 flex-wrap">
                           <Button variant="ghost" size="icon" onClick={() => handleOpenStockAdjustmentDialog(item, 'ADD_STOCK')} aria-label={`Add stock to ${item.name}`}>
                             <PlusCircle className="h-4 w-4 text-green-600" />
                           </Button>
@@ -372,7 +370,7 @@ export default function WarehouseDetailPage() {
                             </TableCell>
                             <TableCell className="text-right">{entry.quantityBefore}</TableCell>
                             <TableCell className="text-right font-semibold">{entry.quantityAfter}</TableCell>
-                            <TableCell className="text-xs">{entry.comment}</TableCell>
+                            <TableCell className="text-xs break-words">{entry.comment}</TableCell>
                         </TableRow>
                         ))}
                     </TableBody>
@@ -440,9 +438,7 @@ export default function WarehouseDetailPage() {
       <Dialog open={isStockAdjustmentDialogOpen} onOpenChange={(isOpen) => {
         setIsStockAdjustmentDialogOpen(isOpen);
         if (!isOpen) {
-            // setItemForAdjustment(null); // Keep itemForAdjustment to allow history to pick up latest changes
-            // setAdjustmentType(null);
-            stockAdjustmentForm.reset(); // Reset form when dialog closes
+            stockAdjustmentForm.reset(); 
         }
       }}>
         <DialogContent className="sm:max-w-[425px]">
