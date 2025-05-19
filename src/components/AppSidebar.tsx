@@ -27,7 +27,7 @@ import { cn } from "@/lib/utils";
 
 // Miniature App Logo for Sidebar
 const MiniAppLogo = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-primary">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-primary shrink-0">
     <path d="M12 2L2 7l10 5 10-5-10-5z"/>
     <path d="M2 17l10 5 10-5"/>
     <path d="M2 12l10 5 10-5"/>
@@ -57,10 +57,17 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r">
       <SidebarHeader className={cn(
-        "flex items-center h-14",
+        "flex items-center h-14 gap-2", // Added gap-2
         state === 'collapsed' ? 'justify-center px-2' : 'px-4 justify-start'
       )}>
         <MiniAppLogo />
+        <span className={cn(
+          "font-semibold text-primary text-lg whitespace-nowrap overflow-hidden",
+           // Hide text when sidebar is collapsed
+          state === 'collapsed' && "opacity-0 hidden"
+        )}>
+          Flowgistic Pilot
+        </span>
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
