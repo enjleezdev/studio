@@ -33,7 +33,7 @@ import { PrintableItemReport } from '@/components/PrintableItemReport';
 
 // Helper to format history types - simple space replacement
 const formatHistoryType = (type: HistoryEntry['type']): string => {
-  return type.replace('_', ' ');
+  return type.replace(/_/g, ' ');
 };
 
 export default function ReportsPage() {
@@ -46,8 +46,8 @@ export default function ReportsPage() {
   const { toast } = useToast();
 
   const selectedWarehouse = warehouses.find(wh => wh.id === selectedWarehouseId);
-  const itemsInSelectedWarehouse = selectedWarehouseId 
-    ? items.filter(item => item.warehouseId === selectedWarehouseId) 
+  const itemsInSelectedWarehouse = selectedWarehouseId
+    ? items.filter(item => item.warehouseId === selectedWarehouseId && !item.isArchived)
     : [];
   const selectedItem = itemsInSelectedWarehouse.find(item => item.id === selectedItemId);
 
@@ -56,11 +56,11 @@ export default function ReportsPage() {
     try {
       const storedWarehousesString = localStorage.getItem('warehouses');
       if (storedWarehousesString) {
-        setWarehouses(JSON.parse(storedWarehousesString));
+        setWarehouses(JSON.parse(storedWarehousesString).filter((wh: Warehouse) => !wh.isArchived));
       }
       const storedItemsString = localStorage.getItem('items');
       if (storedItemsString) {
-        setItems(JSON.parse(storedItemsString));
+        setItems(JSON.parse(storedItemsString).filter((item: Item) => !item.isArchived));
       }
       const storedArchivedReportsString = localStorage.getItem('archivedReports');
       if (storedArchivedReportsString) {
@@ -76,13 +76,13 @@ export default function ReportsPage() {
 
   const handleWarehouseChange = (warehouseId: string) => {
     setSelectedWarehouseId(warehouseId);
-    setSelectedItemId(null); 
+    setSelectedItemId(null);
   };
 
   const handleItemChange = (itemId: string) => {
     setSelectedItemId(itemId);
   };
-  
+
   const renderItemHistoryTable = (history: HistoryEntry[], title: string, currentStock?: number) => {
     if (!history || history.length === 0) {
       return <p className="text-sm text-muted-foreground">No transaction history for this item.</p>;
@@ -94,39 +94,39 @@ export default function ReportsPage() {
         <h3 className="text-lg font-semibold mb-2">
           {title} {currentStock !== undefined ? `(Current Stock: ${currentStock})` : ''}
         </h3>
-        <ScrollArea className="h-[400px] rounded-md border">
+        <ScrollArea className="h-[400px] w-full rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[150px]">Date</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead className="text-right">Change</TableHead>
-                <TableHead className="text-right">Before</TableHead>
-                <TableHead className="text-right">After</TableHead>
-                <TableHead>Comment</TableHead>
+                <TableHead className="whitespace-nowrap">Date</TableHead>
+                <TableHead className="whitespace-nowrap">Type</TableHead>
+                <TableHead className="text-right whitespace-nowrap">Change</TableHead>
+                <TableHead className="text-right whitespace-nowrap">Before</TableHead>
+                <TableHead className="text-right whitespace-nowrap">After</TableHead>
+                <TableHead className="whitespace-normal">Comment</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {sortedHistory.map((entry) => (
                 <TableRow key={entry.id}>
-                  <TableCell className="text-xs">{format(new Date(entry.timestamp), 'PPpp')}</TableCell>
-                  <TableCell>
+                  <TableCell className="text-xs whitespace-nowrap">{format(new Date(entry.timestamp), 'P p')}</TableCell>
+                  <TableCell className="whitespace-nowrap">
                     <span className={`px-2 py-0.5 text-xs rounded-full ${
-                        entry.type === 'CREATE_ITEM' ? 'bg-blue-100 text-blue-700' :
-                        entry.type === 'ADD_STOCK' ? 'bg-green-100 text-green-700' :
-                        entry.type === 'CONSUME_STOCK' ? 'bg-red-100 text-red-700' :
-                        entry.type === 'ADJUST_STOCK' ? 'bg-yellow-100 text-yellow-700' :
-                        'bg-gray-100 text-gray-700'
+                        entry.type === 'CREATE_ITEM' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
+                        entry.type === 'ADD_STOCK' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
+                        entry.type === 'CONSUME_STOCK' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
+                        entry.type === 'ADJUST_STOCK' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
+                        'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
                     }`}>
                         {formatHistoryType(entry.type)}
                     </span>
                   </TableCell>
-                  <TableCell className={`text-right font-medium ${entry.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <TableCell className={`text-right font-medium whitespace-nowrap ${entry.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                     {entry.change > 0 ? `+${entry.change}` : entry.change}
                   </TableCell>
-                  <TableCell className="text-right">{entry.quantityBefore}</TableCell>
-                  <TableCell className="text-right font-semibold">{entry.quantityAfter}</TableCell>
-                  <TableCell className="text-xs">{entry.comment}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{entry.quantityBefore}</TableCell>
+                  <TableCell className="text-right font-semibold whitespace-nowrap">{entry.quantityAfter}</TableCell>
+                  <TableCell className="text-xs whitespace-normal break-words">{entry.comment}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -151,12 +151,13 @@ export default function ReportsPage() {
         createdAt: report.historySnapshot.length > 0 ? report.historySnapshot[report.historySnapshot.length -1].timestamp : report.printedAt,
         updatedAt: report.historySnapshot.length > 0 ? report.historySnapshot[0].timestamp : report.printedAt,
         history: report.historySnapshot,
+        isArchived: true, // It's an archived report
     };
 
     root.render(
       <PrintableItemReport
         warehouseName={report.warehouseName}
-        item={itemForPrinting} 
+        item={itemForPrinting}
         printedBy={report.printedBy}
         printDate={new Date(report.printedAt)}
       />
@@ -164,11 +165,13 @@ export default function ReportsPage() {
 
     setTimeout(() => {
       window.print();
-      root.unmount();
-      if (document.body.contains(printableArea)) {
-        document.body.removeChild(printableArea);
-      }
-    }, 100);
+      setTimeout(() => {
+        root.unmount();
+        if (document.body.contains(printableArea)) {
+          document.body.removeChild(printableArea);
+        }
+      }, 100); // Ensure unmount happens after print dialog is likely closed
+    }, 250); // Allow time for render
   };
 
 
@@ -206,7 +209,7 @@ export default function ReportsPage() {
                         </SelectItem>
                       ))
                     ) : (
-                      <div className="p-4 text-sm text-muted-foreground">No warehouses available.</div>
+                      <div className="p-4 text-sm text-muted-foreground">No active warehouses available.</div>
                     )}
                   </SelectContent>
                 </Select>
@@ -265,24 +268,24 @@ export default function ReportsPage() {
                 description="Reports you print will be archived here for future reference."
               />
             ) : (
-              <ScrollArea className="h-[400px] rounded-md border">
+              <ScrollArea className="h-[400px] w-full rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Item Name</TableHead>
-                      <TableHead>Warehouse</TableHead>
-                      <TableHead>Printed By</TableHead>
-                      <TableHead>Printed At</TableHead>
+                      <TableHead className="break-words">Item Name</TableHead>
+                      <TableHead className="break-words">Warehouse</TableHead>
+                      <TableHead className="whitespace-nowrap">Printed By</TableHead>
+                      <TableHead className="whitespace-nowrap">Printed At</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {archivedReports.sort((a,b) => new Date(b.printedAt).getTime() - new Date(a.printedAt).getTime()).map((report) => (
                       <TableRow key={report.id}>
-                        <TableCell className="font-medium">{report.itemName}</TableCell>
-                        <TableCell>{report.warehouseName}</TableCell>
-                        <TableCell>{report.printedBy}</TableCell>
-                        <TableCell className="text-xs">{format(new Date(report.printedAt), 'PPpp')}</TableCell>
+                        <TableCell className="font-medium break-words">{report.itemName}</TableCell>
+                        <TableCell className="break-words">{report.warehouseName}</TableCell>
+                        <TableCell className="whitespace-nowrap">{report.printedBy}</TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">{format(new Date(report.printedAt), 'P p')}</TableCell>
                         <TableCell className="text-right">
                           <Button variant="outline" size="sm" onClick={() => handlePrintArchivedReport(report)}>
                             <Printer className="mr-2 h-3 w-3" /> Re-print
