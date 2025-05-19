@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -100,9 +99,6 @@ export default function NewWarehousePage() {
                     <FormControl>
                       <Input placeholder="" {...field} />
                     </FormControl>
-                    <FormDescription>
-                      Enter a clear and concise name for the warehouse.
-                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -120,9 +116,6 @@ export default function NewWarehousePage() {
                         {...field}
                       />
                     </FormControl>
-                    <FormDescription>
-                      Provide any additional details about the warehouse.
-                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
