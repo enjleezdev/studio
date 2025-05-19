@@ -58,11 +58,35 @@ export default function ArchivePage() {
   };
 
   const handleRestoreWarehouse = (warehouseId: string) => {
-    // Future implementation:
-    // Find warehouse, set isArchived to false
-    // Optionally, find all items belonging to this warehouse that were archived *with the warehouse*
-    // and set their isArchived to false as well, unless they were individually archived before.
-    toast({ title: "Info", description: `Restore warehouse ${warehouseId} - coming soon!`});
+    try {
+      const existingWarehousesString = localStorage.getItem('warehouses');
+      let allWhs: Warehouse[] = existingWarehousesString ? JSON.parse(existingWarehousesString) : [];
+      let restoredWarehouseName = "The warehouse";
+
+      const warehouseIndex = allWhs.findIndex(wh => wh.id === warehouseId);
+      if (warehouseIndex > -1) {
+        restoredWarehouseName = allWhs[warehouseIndex].name;
+        allWhs[warehouseIndex] = {
+          ...allWhs[warehouseIndex],
+          isArchived: false,
+          // Note: Warehouse type doesn't have updatedAt, so we don't update it here.
+        };
+        localStorage.setItem('warehouses', JSON.stringify(allWhs));
+        
+        toast({ title: "Warehouse Restored", description: `${restoredWarehouseName} has been restored.` });
+        
+        // Optimistically update local state or reload all data
+        setArchivedWarehouses(prevWarehouses => prevWarehouses.filter(wh => wh.id !== warehouseId));
+        // Reload all data to ensure consistency across the app if needed elsewhere,
+        // or specifically reload what's needed for this page.
+        loadArchivedData(); 
+      } else {
+        toast({ title: "Error", description: "Warehouse not found for restoring.", variant: "destructive" });
+      }
+    } catch (error) {
+      console.error("Failed to restore warehouse from localStorage", error);
+      toast({ title: "Error", description: "Failed to restore warehouse.", variant: "destructive" });
+    }
   };
 
   const handleRestoreItem = (itemId: string) => {
@@ -86,8 +110,7 @@ export default function ArchivePage() {
         // Optimistically update the local state for immediate feedback
         setArchivedItems(prevItems => prevItems.filter(i => i.id !== itemId));
         
-        // Reload all data to ensure consistency, especially if restoring an item could affect warehouse status (not current logic)
-        // or if other parts of the page depend on fresh data.
+        // Reload all data to ensure consistency
         loadArchivedData(); 
       } else {
         toast({ title: "Error", description: "Item not found for restoring.", variant: "destructive" });
@@ -123,7 +146,6 @@ export default function ArchivePage() {
                 description="Warehouses you archive will appear here."
               />
             ) : (
-              // Relying on Table's built-in responsive wrapper, removed ScrollArea
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -138,7 +160,7 @@ export default function ArchivePage() {
                       <TableCell className="font-medium break-words">{wh.name}</TableCell>
                       <TableCell className="text-sm text-muted-foreground break-words">{wh.description || 'N/A'}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="outline" size="sm" onClick={() => handleRestoreWarehouse(wh.id)} disabled>
+                        <Button variant="outline" size="sm" onClick={() => handleRestoreWarehouse(wh.id)}>
                           <RotateCcw className="mr-2 h-3 w-3" /> Restore
                         </Button>
                       </TableCell>
@@ -163,8 +185,6 @@ export default function ArchivePage() {
                 description="Items you archive will appear here."
               />
             ) : (
-              // Relying on Table's built-in responsive wrapper, removed ScrollArea
-              // The Table component itself provides a div with "relative w-full overflow-auto"
               <Table> 
                 <TableHeader>
                   <TableRow>
@@ -182,7 +202,7 @@ export default function ArchivePage() {
                       <TableCell className="break-words">{getWarehouseName(item.warehouseId)}</TableCell>
                       <TableCell className="text-right">{item.quantity}</TableCell>
                       <TableCell className="text-xs">
-                        {item.updatedAt ? format(new Date(item.updatedAt), 'P p') : 'N/A'} {/* Shorter date format */}
+                        {item.updatedAt ? format(new Date(item.updatedAt), 'P p') : 'N/A'}
                       </TableCell>
                       <TableCell className="text-right">
                         <Button variant="outline" size="sm" onClick={() => handleRestoreItem(item.id)}>
@@ -200,5 +220,3 @@ export default function ArchivePage() {
     </>
   );
 }
-
-    
