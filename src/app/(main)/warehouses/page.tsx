@@ -20,12 +20,14 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import type { Warehouse } from '@/lib/types'; // Import Warehouse type
 
-interface StoredWarehouse {
-  id: string;
-  name: string;
-  description?: string;
-}
+// Explicitly type StoredWarehouse by extending Warehouse type from types.ts
+// or define it specifically if its structure for localStorage is different.
+// For now, assuming StoredWarehouse is compatible with the Warehouse type
+// or if it only needs id, name, description, then it's okay.
+interface StoredWarehouse extends Warehouse {}
+
 
 export default function WarehousesPage() {
   const [warehouses, setWarehouses] = React.useState<StoredWarehouse[]>([]);
@@ -49,11 +51,19 @@ export default function WarehousesPage() {
     if (!selectedWarehouseForDelete) return;
 
     try {
+      // Also delete items associated with this warehouse
+      const existingItemsString = localStorage.getItem('items');
+      if (existingItemsString) {
+        let existingItems = JSON.parse(existingItemsString);
+        existingItems = existingItems.filter((item: { warehouseId: string; }) => item.warehouseId !== selectedWarehouseForDelete.id);
+        localStorage.setItem('items', JSON.stringify(existingItems));
+      }
+      
       const updatedWarehouses = warehouses.filter(wh => wh.id !== selectedWarehouseForDelete.id);
       localStorage.setItem('warehouses', JSON.stringify(updatedWarehouses));
       setWarehouses(updatedWarehouses);
-      toast({ title: "Warehouse Deleted", description: `${selectedWarehouseForDelete.name} has been deleted.` });
-      setSelectedWarehouseForDelete(null); // Close dialog by resetting state
+      toast({ title: "Warehouse Deleted", description: `${selectedWarehouseForDelete.name} and its items have been deleted.` });
+      setSelectedWarehouseForDelete(null); 
     } catch (error) {
       console.error("Failed to delete warehouse from localStorage", error);
       toast({ title: "Error", description: "Failed to delete warehouse.", variant: "destructive" });
@@ -103,11 +113,12 @@ export default function WarehousesPage() {
                     <CardDescription className="mt-1 text-sm text-muted-foreground line-clamp-2">{warehouse.description}</CardDescription>
                   )}
                 </CardHeader>
-                <CardContent className="pt-2">
+                {/* Item count can be added here later by fetching items for this warehouse */}
+                {/* <CardContent className="pt-2">
                   <p className="text-sm text-muted-foreground">
                     Items: 0 
                   </p>
-                </CardContent>
+                </CardContent> */}
               </Link>
               <div className="flex items-center justify-end gap-2 p-4 pt-0 border-t mt-auto">
                 <Button variant="ghost" size="icon" onClick={() => alert(`Edit ${warehouse.name} - coming soon!`)} aria-label={`Edit ${warehouse.name}`}>
@@ -129,7 +140,7 @@ export default function WarehousesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure you want to delete &quot;{selectedWarehouseForDelete.name}&quot;?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the warehouse and all associated data.
+              This action cannot be undone. This will permanently delete the warehouse and all associated items.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

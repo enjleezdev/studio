@@ -8,7 +8,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
-import { arSA } from 'date-fns/locale';
 import ReactDOM from 'react-dom/client';
 
 import { PageHeader } from '@/components/PageHeader';
@@ -29,35 +28,29 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 const itemFormSchema = z.object({
   name: z.string().min(2, {
-    message: 'اسم العنصر يجب أن يتكون من حرفين على الأقل.',
+    message: 'Item name must be at least 2 characters.',
   }),
   quantity: z.coerce
-    .number({ invalid_type_error: 'الكمية يجب أن تكون رقمًا.' })
-    .int('الكمية يجب أن تكون رقمًا صحيحًا.')
-    .positive({ message: 'الكمية يجب أن تكون رقمًا موجبًا.' }),
+    .number({ invalid_type_error: 'Quantity must be a number.' })
+    .int('Quantity must be an integer.')
+    .positive({ message: 'Quantity must be a positive number.' }),
 });
 
 type ItemFormValues = z.infer<typeof itemFormSchema>;
 
 const stockAdjustmentFormSchema = z.object({
   adjustmentQuantity: z.coerce
-    .number({ invalid_type_error: 'الكمية يجب أن تكون رقمًا.' })
-    .int('الكمية يجب أن تكون رقمًا صحيحًا.')
-    .positive({ message: 'كمية التعديل يجب أن تكون رقمًا موجبًا.' }),
+    .number({ invalid_type_error: 'Quantity must be a number.' })
+    .int('Quantity must be an integer.')
+    .positive({ message: 'Adjustment quantity must be a positive number.' }),
   comment: z.string().optional(),
 });
 
 type StockAdjustmentFormValues = z.infer<typeof stockAdjustmentFormSchema>;
 
-// Helper function to translate history types
-const translateHistoryType = (type: HistoryEntry['type']): string => {
-  switch (type) {
-    case 'CREATE_ITEM': return 'إنشاء عنصر';
-    case 'ADD_STOCK': return 'إضافة مخزون';
-    case 'CONSUME_STOCK': return 'استهلاك مخزون';
-    case 'ADJUST_STOCK': return 'تعديل مخزون';
-    default: return type;
-  }
+// Helper to format history types - simple space replacement
+const formatHistoryType = (type: HistoryEntry['type']): string => {
+  return type.replace('_', ' ');
 };
 
 export default function WarehouseDetailPage() {
@@ -102,12 +95,12 @@ export default function WarehouseDetailPage() {
         if (foundWarehouse) {
           setWarehouse(foundWarehouse);
         } else {
-          toast({ title: "خطأ", description: "المستودع غير موجود.", variant: "destructive" });
+          toast({ title: "Error", description: "Warehouse not found.", variant: "destructive" });
           router.push('/warehouses');
           return;
         }
       } else {
-         toast({ title: "خطأ", description: "لا توجد مستودعات في التخزين.", variant: "destructive" });
+         toast({ title: "Error", description: "No warehouses found in storage.", variant: "destructive" });
          router.push('/warehouses');
          return;
       }
@@ -128,11 +121,11 @@ export default function WarehouseDetailPage() {
 
     } catch (error) {
       console.error("Failed to load data from localStorage", error);
-      toast({ title: "خطأ", description: "فشل تحميل البيانات.", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to load data.", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
-  }, [warehouseId, router, toast]); 
+  }, [warehouseId, router, toast, selectedItemForHistory?.id]); 
 
   React.useEffect(() => {
     if (warehouseId) {
@@ -152,7 +145,7 @@ export default function WarehouseDetailPage() {
       quantityBefore: 0,
       quantityAfter: data.quantity,
       timestamp: now,
-      comment: 'إنشاء العنصر الأولي',
+      comment: 'Initial item creation',
     };
 
     const newItem: Item = {
@@ -171,13 +164,13 @@ export default function WarehouseDetailPage() {
       existingItems.push(newItem);
       localStorage.setItem('items', JSON.stringify(existingItems));
       
-      toast({ title: "تمت إضافة العنصر", description: `تمت إضافة ${newItem.name} إلى ${warehouse?.name}.` });
+      toast({ title: "Item Added", description: `${newItem.name} has been added to ${warehouse?.name}.` });
       setIsAddItemDialogOpen(false); 
       itemForm.reset(); 
       loadWarehouseAndItems(); 
     } catch (error) {
       console.error("Failed to save item to localStorage", error);
-      toast({ title: "خطأ", description: "فشل حفظ العنصر. الرجاء المحاولة مرة أخرى.", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to save item. Please try again.", variant: "destructive" });
     }
   }
 
@@ -196,7 +189,7 @@ export default function WarehouseDetailPage() {
     if (adjustmentType === 'CONSUME_STOCK' && itemForAdjustment.quantity < data.adjustmentQuantity) {
       stockAdjustmentForm.setError("adjustmentQuantity", {
         type: "manual",
-        message: `لا يمكن استهلاك كمية أكبر من المخزون المتاح (${itemForAdjustment.quantity}).`,
+        message: `Cannot consume more than available stock (${itemForAdjustment.quantity}).`,
       });
       return;
     }
@@ -209,7 +202,7 @@ export default function WarehouseDetailPage() {
       quantityBefore: itemForAdjustment.quantity,
       quantityAfter: itemForAdjustment.quantity + quantityChange,
       timestamp: now,
-      comment: data.comment || (adjustmentType === 'ADD_STOCK' ? 'تمت إضافة مخزون' : 'تم استهلاك مخزون'),
+      comment: data.comment || (adjustmentType === 'ADD_STOCK' ? 'Stock added' : 'Stock consumed'),
     };
 
     const updatedItem: Item = {
@@ -227,16 +220,16 @@ export default function WarehouseDetailPage() {
       if (itemIndex > -1) {
         existingItems[itemIndex] = updatedItem;
         localStorage.setItem('items', JSON.stringify(existingItems));
-        toast({ title: "تم تحديث المخزون", description: `تم تحديث مخزون ${updatedItem.name}.` });
+        toast({ title: "Stock Updated", description: `Stock for ${updatedItem.name} has been updated.` });
         setIsStockAdjustmentDialogOpen(false);
         stockAdjustmentForm.reset();
         loadWarehouseAndItems();
       } else {
-        toast({ title: "خطأ", description: "لم يتم العثور على العنصر للتحديث.", variant: "destructive" });
+        toast({ title: "Error", description: "Item not found for update.", variant: "destructive" });
       }
     } catch (error) {
       console.error("Failed to update item stock in localStorage", error);
-      toast({ title: "خطأ", description: "فشل تحديث المخزون. الرجاء المحاولة مرة أخرى.", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to update stock. Please try again.", variant: "destructive" });
     }
   }
   
@@ -252,7 +245,7 @@ export default function WarehouseDetailPage() {
     if (!warehouse || !itemToPrint) return;
 
     const printableArea = document.createElement('div');
-    printableArea.id = 'printable-report-area'; // For print.css to target
+    printableArea.id = 'printable-report-area'; 
     document.body.appendChild(printableArea);
 
     const root = ReactDOM.createRoot(printableArea);
@@ -260,7 +253,7 @@ export default function WarehouseDetailPage() {
       <PrintableItemReport
         warehouseName={warehouse.name}
         item={itemToPrint}
-        printedBy="Admin User" // Replace with actual user if available
+        printedBy="Admin User" 
         printDate={new Date()}
       />
     );
@@ -293,14 +286,14 @@ export default function WarehouseDetailPage() {
         existingReports.push(archivedReport);
         localStorage.setItem('archivedReports', JSON.stringify(existingReports));
         toast({
-          title: "تم أرشفة التقرير",
-          description: `تم حفظ تقرير العنصر ${itemToPrint.name}.`,
+          title: "Report Archived",
+          description: `Report for item ${itemToPrint.name} has been saved.`,
         });
       } catch (error) {
         console.error("Failed to archive report:", error);
         toast({
-          title: "خطأ في الأرشفة",
-          description: "لم يتم حفظ التقرير بسبب خطأ.",
+          title: "Archiving Error",
+          description: "Failed to save report due to an error.",
           variant: "destructive",
         });
       }
@@ -315,7 +308,7 @@ export default function WarehouseDetailPage() {
   if (!warehouse) {
     return (
        <div className="flex h-full w-full items-center justify-center">
-         <p>المستودع غير موجود أو حدث خطأ.</p>
+         <p>Warehouse not found or an error occurred.</p>
        </div>
     );
   }
@@ -324,18 +317,18 @@ export default function WarehouseDetailPage() {
     <TooltipProvider>
       <PageHeader
         title={warehouse.name}
-        description={warehouse.description || "إدارة العناصر والتفاصيل الخاصة بهذا المستودع."}
+        description={warehouse.description || "Manage items and details for this warehouse."}
         actions={
           <div className="flex gap-2">
             <Button variant="outline" asChild>
               <Link href="/warehouses">
-                <ArrowLeft className="ml-2 h-4 w-4" /> {/* Changed mr-2 to ml-2 for RTL */}
-                العودة إلى المستودعات
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Warehouses
               </Link>
             </Button>
             <Button onClick={() => setIsAddItemDialogOpen(true)}>
-              <PackagePlus className="ml-2 h-4 w-4" /> {/* Changed mr-2 to ml-2 for RTL */}
-              إضافة عنصر
+              <PackagePlus className="mr-2 h-4 w-4" />
+              Add Item
             </Button>
           </div>
         }
@@ -343,17 +336,17 @@ export default function WarehouseDetailPage() {
       
       <Card>
         <CardHeader>
-          <CardTitle>عناصر المخزون</CardTitle>
-          <CardDescription>جميع العناصر المخزنة حاليًا في {warehouse.name}. انقر على أيقونة <HistoryIcon className="inline h-4 w-4 text-muted-foreground" /> لعرض سجل معاملات العنصر.</CardDescription>
+          <CardTitle>Inventory Items</CardTitle>
+          <CardDescription>All items currently stored in {warehouse.name}. Click the <HistoryIcon className="inline h-4 w-4 text-muted-foreground" /> icon to view item transaction history.</CardDescription>
         </CardHeader>
         <CardContent>
           {items.length === 0 ? (
             <EmptyState
               IconComponent={PackageSearch}
-              title="لا توجد عناصر بعد"
-              description="ابدأ بإضافة العنصر الأول إلى هذا المستودع."
+              title="No Items Yet"
+              description="Start by adding your first item to this warehouse."
               action={{
-                label: "إضافة عنصر",
+                label: "Add Item",
                 onClick: () => setIsAddItemDialogOpen(true),
                 icon: PackagePlus,
               }}
@@ -362,7 +355,7 @@ export default function WarehouseDetailPage() {
             <Table className="table-fixed w-full">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-full text-right">تفاصيل العنصر</TableHead>
+                  <TableHead className="w-full text-left">Item Details</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -370,51 +363,51 @@ export default function WarehouseDetailPage() {
                   <React.Fragment key={item.id}>
                     <TableRow className={selectedItemForHistory?.id === item.id ? 'bg-muted/50 border-b-0' : ''}>
                       <TableCell className="py-3 px-4 align-top">
-                        <div className="flex flex-col items-start gap-1 text-right">
+                        <div className="flex flex-col items-start gap-1">
                           <span className="font-semibold text-base break-words">{item.name}</span>
                           <span className="text-sm text-muted-foreground">
-                            الكمية: {item.quantity}
+                            Quantity: {item.quantity}
                           </span>
                           <div className="flex items-center gap-0.5 flex-wrap mt-1">
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" onClick={() => handleOpenStockAdjustmentDialog(item, 'ADD_STOCK')} aria-label={`إضافة مخزون إلى ${item.name}`}>
+                                <Button variant="ghost" size="icon" onClick={() => handleOpenStockAdjustmentDialog(item, 'ADD_STOCK')} aria-label={`Add stock to ${item.name}`}>
                                   <PlusCircle className="h-5 w-5 text-green-600" />
                                 </Button>
                               </TooltipTrigger>
-                              <TooltipContent><p>إضافة مخزون</p></TooltipContent>
+                              <TooltipContent><p>Add Stock</p></TooltipContent>
                             </Tooltip>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" onClick={() => handleOpenStockAdjustmentDialog(item, 'CONSUME_STOCK')} aria-label={`استهلاك مخزون من ${item.name}`}>
+                                <Button variant="ghost" size="icon" onClick={() => handleOpenStockAdjustmentDialog(item, 'CONSUME_STOCK')} aria-label={`Consume stock from ${item.name}`}>
                                   <MinusCircle className="h-5 w-5 text-red-600" />
                                 </Button>
                               </TooltipTrigger>
-                              <TooltipContent><p>استهلاك مخزون</p></TooltipContent>
+                              <TooltipContent><p>Consume Stock</p></TooltipContent>
                             </Tooltip>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" onClick={() => handleShowHistory(item)} aria-label={`عرض سجل ${item.name}`} className={selectedItemForHistory?.id === item.id ? 'bg-accent text-accent-foreground' : ''}>
+                                <Button variant="ghost" size="icon" onClick={() => handleShowHistory(item)} aria-label={`View history for ${item.name}`} className={selectedItemForHistory?.id === item.id ? 'bg-accent text-accent-foreground' : ''}>
                                   <HistoryIcon className="h-5 w-5" />
                                 </Button>
                               </TooltipTrigger>
-                              <TooltipContent><p>عرض السجل</p></TooltipContent>
+                              <TooltipContent><p>View History</p></TooltipContent>
                             </Tooltip>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                 <Button variant="ghost" size="icon" onClick={() => handlePrintReport(item)} aria-label={`طباعة تقرير ${item.name}`}>
+                                 <Button variant="ghost" size="icon" onClick={() => handlePrintReport(item)} aria-label={`Print report for ${item.name}`}>
                                   <Printer className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                                 </Button>
                               </TooltipTrigger>
-                              <TooltipContent><p>طباعة التقرير</p></TooltipContent>
+                              <TooltipContent><p>Print Report</p></TooltipContent>
                             </Tooltip>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => alert(`سيتم تفعيل حذف العنصر ${item.name} قريبًا!`)} aria-label={`حذف ${item.name}`}>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => alert(`Deleting item ${item.name} will be implemented soon!`)} aria-label={`Delete ${item.name}`}>
                                   <Trash2 className="h-5 w-5" />
                                 </Button>
                               </TooltipTrigger>
-                              <TooltipContent><p>حذف العنصر</p></TooltipContent>
+                              <TooltipContent><p>Delete Item</p></TooltipContent>
                             </Tooltip>
                           </div>
                         </div>
@@ -423,27 +416,27 @@ export default function WarehouseDetailPage() {
                     {selectedItemForHistory?.id === item.id && item.history && (
                       <TableRow className="bg-muted/20 hover:bg-muted/30">
                          <TableCell className="p-0 overflow-hidden"> 
-                           <div className="w-full overflow-auto max-h-[300px]"> 
+                           <div className="h-full w-full overflow-auto">
                             <div className="p-4 space-y-3">
-                                <h4 className="text-md font-semibold text-foreground text-right">
-                                سجل المعاملات: <span className="font-bold">{item.name}</span>
+                                <h4 className="text-md font-semibold text-foreground text-left">
+                                Transaction History: <span className="font-bold">{item.name}</span>
                                 </h4>
                                 {item.history.length > 0 ? (
-                                    <table className="text-xs border-collapse min-w-full text-right">
+                                    <table className="text-xs border-collapse min-w-full text-left">
                                     <thead className="sticky top-0 bg-muted/80 dark:bg-muted/60 backdrop-blur-sm z-10">
                                         <tr>
-                                        <th className="py-2 px-3 text-right font-medium text-muted-foreground whitespace-nowrap">التاريخ</th>
-                                        <th className="py-2 px-3 text-right font-medium text-muted-foreground whitespace-nowrap">النوع</th>
-                                        <th className="py-2 px-3 text-center font-medium text-muted-foreground whitespace-nowrap">التغيير</th>
-                                        <th className="py-2 px-3 text-center font-medium text-muted-foreground whitespace-nowrap">قبل</th>
-                                        <th className="py-2 px-3 text-center font-medium text-muted-foreground whitespace-nowrap">بعد</th>
-                                        <th className="py-2 px-3 text-right font-medium text-muted-foreground min-w-[150px] whitespace-normal">التعليق</th>
+                                        <th className="py-2 px-3 text-left font-medium text-muted-foreground whitespace-nowrap">Date</th>
+                                        <th className="py-2 px-3 text-left font-medium text-muted-foreground whitespace-nowrap">Type</th>
+                                        <th className="py-2 px-3 text-center font-medium text-muted-foreground whitespace-nowrap">Change</th>
+                                        <th className="py-2 px-3 text-center font-medium text-muted-foreground whitespace-nowrap">Before</th>
+                                        <th className="py-2 px-3 text-center font-medium text-muted-foreground whitespace-nowrap">After</th>
+                                        <th className="py-2 px-3 text-left font-medium text-muted-foreground min-w-[150px] whitespace-normal">Comment</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {[...item.history].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((entry) => (
                                         <tr key={entry.id} className="border-b border-border/50 last:border-b-0 hover:bg-muted/10 dark:hover:bg-muted/5">
-                                            <td className="py-1.5 px-3 whitespace-nowrap">{format(new Date(entry.timestamp), "PPpp", { locale: arSA })}</td>
+                                            <td className="py-1.5 px-3 whitespace-nowrap">{format(new Date(entry.timestamp), "PPpp")}</td>
                                             <td className="py-1.5 px-3 whitespace-nowrap">
                                             <span className={`px-2 py-0.5 rounded-full text-xs ${
                                                 entry.type === 'CREATE_ITEM' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' :
@@ -452,7 +445,7 @@ export default function WarehouseDetailPage() {
                                                 entry.type === 'ADJUST_STOCK' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-200' :
                                                 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200'
                                             }`}>
-                                                {translateHistoryType(entry.type)}
+                                                {formatHistoryType(entry.type)}
                                             </span>
                                             </td>
                                             <td className={`py-1.5 px-3 text-center font-medium whitespace-nowrap ${entry.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
@@ -466,7 +459,7 @@ export default function WarehouseDetailPage() {
                                     </tbody>
                                     </table>
                                 ) : (
-                                <p className="text-sm text-muted-foreground p-4 text-center">لا يوجد سجل معاملات لهذا العنصر.</p>
+                                <p className="text-sm text-muted-foreground p-4 text-center">No transaction history for this item.</p>
                                 )}
                             </div>
                            </div>
@@ -484,9 +477,9 @@ export default function WarehouseDetailPage() {
       <Dialog open={isAddItemDialogOpen} onOpenChange={setIsAddItemDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>إضافة عنصر جديد إلى {warehouse?.name}</DialogTitle>
+            <DialogTitle>Add New Item to {warehouse?.name}</DialogTitle>
             <DialogDescription>
-              املأ التفاصيل أدناه لإضافة عنصر جديد إلى هذا المستودع.
+              Fill in the details below to add a new item to this warehouse.
             </DialogDescription>
           </DialogHeader>
           <Form {...itemForm}>
@@ -496,9 +489,9 @@ export default function WarehouseDetailPage() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>اسم العنصر</FormLabel>
+                    <FormLabel>Item Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="مثال: أدوات إلكترونية" {...field} />
+                      <Input placeholder="e.g., Electronics" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -509,9 +502,9 @@ export default function WarehouseDetailPage() {
                 name="quantity"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>الكمية</FormLabel>
+                    <FormLabel>Quantity</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="مثال: 100" {...field} />
+                      <Input type="number" placeholder="e.g., 100" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -519,9 +512,9 @@ export default function WarehouseDetailPage() {
               />
               <DialogFooter>
                 <DialogClose asChild>
-                  <Button type="button" variant="outline">إلغاء</Button>
+                  <Button type="button" variant="outline">Cancel</Button>
                 </DialogClose>
-                <Button type="submit">حفظ العنصر</Button>
+                <Button type="submit">Save Item</Button>
               </DialogFooter>
             </form>
           </Form>
@@ -537,11 +530,11 @@ export default function WarehouseDetailPage() {
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>
-              {adjustmentType === 'ADD_STOCK' ? 'إضافة مخزون إلى ' : 'استهلاك مخزون من '} 
+              {adjustmentType === 'ADD_STOCK' ? 'Add Stock to ' : 'Consume Stock from '} 
               {itemForAdjustment?.name}
             </DialogTitle>
             <DialogDescription>
-              الكمية الحالية: {itemForAdjustment?.quantity}. أدخل الكمية التي تريد {adjustmentType === 'ADD_STOCK' ? 'إضافتها.' : 'استهلاكها.'}
+              Current quantity: {itemForAdjustment?.quantity}. Enter the quantity to {adjustmentType === 'ADD_STOCK' ? 'add.' : 'consume.'}
             </DialogDescription>
           </DialogHeader>
           <Form {...stockAdjustmentForm}>
@@ -551,7 +544,7 @@ export default function WarehouseDetailPage() {
                 name="adjustmentQuantity"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>الكمية التي سيتم {adjustmentType === 'ADD_STOCK' ? 'إضافتها' : 'استهلاكها'}</FormLabel>
+                    <FormLabel>Quantity to {adjustmentType === 'ADD_STOCK' ? 'add' : 'consume'}</FormLabel>
                     <FormControl>
                       <Input type="number" {...field} />
                     </FormControl>
@@ -564,9 +557,9 @@ export default function WarehouseDetailPage() {
                 name="comment"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>تعليق (اختياري)</FormLabel>
+                    <FormLabel>Comment (Optional)</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="مثال: استلام شحنة جديدة، طلب رقم 123" {...field} />
+                      <Textarea placeholder="e.g., Received new shipment, Order #123" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -574,10 +567,10 @@ export default function WarehouseDetailPage() {
               />
               <DialogFooter>
                 <DialogClose asChild>
-                  <Button type="button" variant="outline">إلغاء</Button>
+                  <Button type="button" variant="outline">Cancel</Button>
                 </DialogClose>
                 <Button type="submit">
-                  {adjustmentType === 'ADD_STOCK' ? 'إضافة مخزون' : 'استهلاك مخزون'}
+                  {adjustmentType === 'ADD_STOCK' ? 'Add Stock' : 'Consume Stock'}
                 </Button>
               </DialogFooter>
             </form>
@@ -587,4 +580,3 @@ export default function WarehouseDetailPage() {
     </TooltipProvider>
   );
 }
-    

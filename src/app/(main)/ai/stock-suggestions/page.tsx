@@ -29,7 +29,7 @@ type SuggestionFormValues = z.infer<typeof suggestionFormSchema>;
 export default function StockSuggestionsPage() {
   const { toast } = useToast();
   const [warehouses, setWarehouses] = React.useState<Warehouse[]>([]);
-  const [allItems, setAllItems] = React.useState<Item[]>([]); // All items from all warehouses
+  const [allItems, setAllItems] = React.useState<Item[]>([]); 
   const [itemsInSelectedWarehouse, setItemsInSelectedWarehouse] = React.useState<Item[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [isLoadingData, setIsLoadingData] = React.useState(true);
@@ -70,7 +70,7 @@ export default function StockSuggestionsPage() {
     if (selectedWarehouseId) {
       const filteredItems = allItems.filter(item => item.warehouseId === selectedWarehouseId);
       setItemsInSelectedWarehouse(filteredItems);
-      form.setValue('itemId', ''); // Reset item selection when warehouse changes
+      form.setValue('itemId', ''); 
     } else {
       setItemsInSelectedWarehouse([]);
     }
@@ -88,19 +88,23 @@ export default function StockSuggestionsPage() {
         return;
       }
 
-      // Construct a more detailed historical data string if possible
-      // For now, we're using what the user inputs directly plus item name.
       const input: StockLevelSuggestionsInput = {
-        itemId: selectedItem.name, // Using item name for the AI, can be ID too
+        itemId: selectedItem.name, 
         historicalData: `Item: ${selectedItem.name}. User input: ${data.historicalData}. Current Stock: ${selectedItem.quantity}. Item History (last 5 if available): ${
           selectedItem.history?.slice(-5).map(h => 
-            `${h.type} of ${h.change} on ${new Date(h.timestamp).toLocaleDateString()}. Comment: ${h.comment || 'N/A'}`
+            `${h.type.replace('_', ' ')} of ${h.change} on ${new Date(h.timestamp).toLocaleDateString()}. Comment: ${h.comment || 'N/A'}`
           ).join('; ') || 'No detailed history available.'
         }`,
       };
       
       const result = await stockLevelSuggestions(input);
       setSuggestionResult(result);
+      // Update the itemId in suggestionResult if it's not directly part of the AI output but useful for display
+      // This is a bit of a hack; ideally, the AI returns the item ID it processed.
+      if (result && !result.itemId) {
+        setSuggestionResult(prev => prev ? {...prev, itemId: selectedItem.name} : null);
+      }
+
     } catch (err) {
       console.error("Error getting stock suggestion:", err);
       setError(err instanceof Error ? err.message : "An unexpected error occurred.");
@@ -235,7 +239,7 @@ export default function StockSuggestionsPage() {
                   )}
                 </div>
                  <p className="text-xs text-muted-foreground pt-4">
-                    Item ID Analyzed: {suggestionResult.itemId || form.getValues('itemId')} {/* Fallback to form value if not in output */}
+                    Item Analyzed: {suggestionResult.itemId || "N/A"}
                 </p>
               </div>
             )}
@@ -251,4 +255,3 @@ export default function StockSuggestionsPage() {
     </>
   );
 }
-

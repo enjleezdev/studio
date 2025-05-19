@@ -1,10 +1,9 @@
 
 // src/components/PrintableItemReport.tsx
-'use client'; // If using hooks or event handlers, though for printing, this might not be strictly needed if props are just passed.
+'use client'; 
 
 import type { Item, HistoryEntry } from '@/lib/types';
 import { format } from 'date-fns';
-import { arSA } from 'date-fns/locale';
 
 interface PrintableItemReportProps {
   warehouseName: string;
@@ -13,23 +12,16 @@ interface PrintableItemReportProps {
   printDate: Date;
 }
 
-// Helper function to translate history types
-const translateHistoryType = (type: HistoryEntry['type']): string => {
-  switch (type) {
-    case 'CREATE_ITEM': return 'إنشاء عنصر';
-    case 'ADD_STOCK': return 'إضافة مخزون';
-    case 'CONSUME_STOCK': return 'استهلاك مخزون';
-    case 'ADJUST_STOCK': return 'تعديل مخزون';
-    default: return type;
-  }
+// Helper to format history types - simple space replacement
+const formatHistoryType = (type: HistoryEntry['type']): string => {
+  return type.replace('_', ' ');
 };
 
 export function PrintableItemReport({ warehouseName, item, printedBy, printDate }: PrintableItemReportProps) {
-  // Sort history by timestamp, newest first for the report
   const sortedHistory = [...(item.history || [])].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return (
-    <div style={{ fontFamily: 'Arial, sans-serif', direction: 'rtl', padding: '20px', width: '210mm', margin: '0 auto' }} id="printable-content">
+    <div style={{ fontFamily: 'Arial, sans-serif', direction: 'ltr', padding: '20px', width: '210mm', margin: '0 auto' }} id="printable-content">
       <style jsx global>{`
         @media print {
           @page {
@@ -41,7 +33,7 @@ export function PrintableItemReport({ warehouseName, item, printedBy, printDate 
             color-adjust: exact; /* Standard */
             margin: 0;
           }
-          #printable-report-area { /* Ensure this ID is on the temporary div in the main page */
+          #printable-report-area { 
             margin: 0;
             padding: 0;
             width: 100%;
@@ -59,7 +51,7 @@ export function PrintableItemReport({ warehouseName, item, printedBy, printDate 
           .print-table th, .print-table td {
             border: 1px solid #ccc;
             padding: 8px;
-            text-align: right;
+            text-align: left; /* Default for LTR */
           }
           .print-table th {
             background-color: #f0f0f0;
@@ -72,58 +64,58 @@ export function PrintableItemReport({ warehouseName, item, printedBy, printDate 
       `}</style>
       
       <div className="print-header" style={{ textAlign: 'center', marginBottom: '20px' }}>
-        <h1 style={{ fontSize: '18pt', margin: '0 0 5px 0' }}>تقرير سجل معاملات العنصر</h1>
-        <p style={{ fontSize: '12pt', margin: '0' }}>المستودع: {warehouseName}</p>
+        <h1 style={{ fontSize: '18pt', margin: '0 0 5px 0' }}>Item Transaction History Report</h1>
+        <p style={{ fontSize: '12pt', margin: '0' }}>Warehouse: {warehouseName}</p>
       </div>
 
       <div style={{ marginBottom: '15px', fontSize: '11pt' }}>
-        <p><strong>اسم العنصر:</strong> {item.name}</p>
-        <p><strong>الكمية الحالية:</strong> {item.quantity}</p>
-        <p><strong>تاريخ الطباعة:</strong> {format(printDate, "PPpp", { locale: arSA })}</p>
-        <p><strong>تمت الطباعة بواسطة:</strong> {printedBy}</p>
+        <p><strong>Item Name:</strong> {item.name}</p>
+        <p><strong>Current Quantity:</strong> {item.quantity}</p>
+        <p><strong>Print Date:</strong> {format(printDate, "PPpp")}</p>
+        <p><strong>Printed By:</strong> {printedBy}</p>
       </div>
 
       <h2 style={{ fontSize: '14pt', marginTop: '20px', marginBottom: '10px', borderBottom: '1px solid #eee', paddingBottom: '5px' }}>
-        سجل المعاملات
+        Transaction History
       </h2>
       
       {sortedHistory.length > 0 ? (
         <table className="print-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10pt' }}>
           <thead>
             <tr>
-              <th style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'right', backgroundColor: '#f0f0f0' }}>التاريخ</th>
-              <th style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'right', backgroundColor: '#f0f0f0' }}>النوع</th>
-              <th style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'center', backgroundColor: '#f0f0f0' }}>التغيير</th>
-              <th style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'center', backgroundColor: '#f0f0f0' }}>الكمية قبل</th>
-              <th style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'center', backgroundColor: '#f0f0f0' }}>الكمية بعد</th>
-              <th style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'right', backgroundColor: '#f0f0f0', minWidth: '150px' }}>التعليق</th>
+              <th style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'left', backgroundColor: '#f0f0f0' }}>Date</th>
+              <th style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'left', backgroundColor: '#f0f0f0' }}>Type</th>
+              <th style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'center', backgroundColor: '#f0f0f0' }}>Change</th>
+              <th style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'center', backgroundColor: '#f0f0f0' }}>Qty Before</th>
+              <th style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'center', backgroundColor: '#f0f0f0' }}>Qty After</th>
+              <th style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'left', backgroundColor: '#f0f0f0', minWidth: '150px' }}>Comment</th>
             </tr>
           </thead>
           <tbody>
             {sortedHistory.map((entry) => (
               <tr key={entry.id}>
-                <td style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                  {format(new Date(entry.timestamp), "PPpp", { locale: arSA })}
+                <td style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'left', whiteSpace: 'nowrap' }}>
+                  {format(new Date(entry.timestamp), "PPpp")}
                 </td>
-                <td style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                  {translateHistoryType(entry.type)}
+                <td style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'left', whiteSpace: 'nowrap' }}>
+                  {formatHistoryType(entry.type)}
                 </td>
                 <td style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'center', whiteSpace: 'nowrap', color: entry.change >= 0 ? 'green' : 'red' }}>
                   {entry.change > 0 ? `+${entry.change}` : entry.change}
                 </td>
                 <td style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'center', whiteSpace: 'nowrap' }}>{entry.quantityBefore}</td>
                 <td style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'center', whiteSpace: 'nowrap', fontWeight: 'bold' }}>{entry.quantityAfter}</td>
-                <td style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'right', minWidth: '150px' }}>{entry.comment}</td>
+                <td style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'left', minWidth: '150px' }}>{entry.comment}</td>
               </tr>
             ))}
           </tbody>
         </table>
       ) : (
-        <p style={{ fontSize: '11pt', textAlign: 'center', marginTop: '20px' }}>لا يوجد سجل معاملات لهذا العنصر.</p>
+        <p style={{ fontSize: '11pt', textAlign: 'center', marginTop: '20px' }}>No transaction history for this item.</p>
       )}
       
       <div className="print-footer" style={{ textAlign: 'center', marginTop: '30px', fontSize: '9pt', borderTop: '1px solid #eee', paddingTop: '10px' }}>
-        <p>هذا التقرير تم إنشاؤه بواسطة نظام StockPilot لإدارة المخزون.</p>
+        <p>This report was generated by the StockPilot Inventory Management System.</p>
       </div>
     </div>
   );

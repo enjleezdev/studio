@@ -3,13 +3,14 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import ReactDOM from 'react-dom/client';
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, BarChart3, AlertTriangle, Warehouse as WarehouseIcon, Package as PackageIcon, History as HistoryIcon } from "lucide-react"; // Added PackageIcon and HistoryIcon
+import { FileText, Package as PackageIcon, Warehouse as WarehouseIcon, Printer, Archive } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { useToast } from "@/hooks/use-toast";
-import type { Warehouse, Item, HistoryEntry } from '@/lib/types';
+import type { Warehouse, Item, HistoryEntry, ArchivedReport } from '@/lib/types';
 import { format } from 'date-fns';
 import {
   Table,
@@ -28,10 +29,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { PrintableItemReport } from '@/components/PrintableItemReport';
+
+// Helper to format history types - simple space replacement
+const formatHistoryType = (type: HistoryEntry['type']): string => {
+  return type.replace('_', ' ');
+};
 
 export default function ReportsPage() {
   const [warehouses, setWarehouses] = React.useState<Warehouse[]>([]);
   const [items, setItems] = React.useState<Item[]>([]); // All items
+  const [archivedReports, setArchivedReports] = React.useState<ArchivedReport[]>([]);
   const [selectedWarehouseId, setSelectedWarehouseId] = React.useState<string | null>(null);
   const [selectedItemId, setSelectedItemId] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -54,6 +62,10 @@ export default function ReportsPage() {
       if (storedItemsString) {
         setItems(JSON.parse(storedItemsString));
       }
+      const storedArchivedReportsString = localStorage.getItem('archivedReports');
+      if (storedArchivedReportsString) {
+        setArchivedReports(JSON.parse(storedArchivedReportsString));
+      }
     } catch (error) {
       console.error("Failed to load data from localStorage", error);
       toast({ title: "Error", description: "Failed to load report data.", variant: "destructive" });
@@ -64,61 +76,99 @@ export default function ReportsPage() {
 
   const handleWarehouseChange = (warehouseId: string) => {
     setSelectedWarehouseId(warehouseId);
-    setSelectedItemId(null); // Reset item selection when warehouse changes
+    setSelectedItemId(null); 
   };
 
   const handleItemChange = (itemId: string) => {
     setSelectedItemId(itemId);
   };
   
-  const renderItemHistoryTable = (history: HistoryEntry[]) => {
+  const renderItemHistoryTable = (history: HistoryEntry[], title: string, currentStock?: number) => {
     if (!history || history.length === 0) {
       return <p className="text-sm text-muted-foreground">No transaction history for this item.</p>;
     }
-
-    // Sort history by timestamp, newest first
     const sortedHistory = [...history].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
     return (
-      <ScrollArea className="h-[400px] rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[150px]">Date</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead className="text-right">Change</TableHead>
-              <TableHead className="text-right">Before</TableHead>
-              <TableHead className="text-right">After</TableHead>
-              <TableHead>Comment</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedHistory.map((entry) => (
-              <TableRow key={entry.id}>
-                <TableCell className="text-xs">{format(new Date(entry.timestamp), 'PPpp')}</TableCell>
-                <TableCell>
-                  <span className={`px-2 py-0.5 text-xs rounded-full ${
-                      entry.type === 'CREATE_ITEM' ? 'bg-blue-100 text-blue-700' :
-                      entry.type === 'ADD_STOCK' ? 'bg-green-100 text-green-700' :
-                      entry.type === 'CONSUME_STOCK' ? 'bg-red-100 text-red-700' :
-                      entry.type === 'ADJUST_STOCK' ? 'bg-yellow-100 text-yellow-700' :
-                      'bg-gray-100 text-gray-700'
-                  }`}>
-                      {entry.type.replace('_', ' ')}
-                  </span>
-                </TableCell>
-                <TableCell className={`text-right font-medium ${entry.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {entry.change > 0 ? `+${entry.change}` : entry.change}
-                </TableCell>
-                <TableCell className="text-right">{entry.quantityBefore}</TableCell>
-                <TableCell className="text-right font-semibold">{entry.quantityAfter}</TableCell>
-                <TableCell className="text-xs">{entry.comment}</TableCell>
+      <div className="mt-6">
+        <h3 className="text-lg font-semibold mb-2">
+          {title} {currentStock !== undefined ? `(Current Stock: ${currentStock})` : ''}
+        </h3>
+        <ScrollArea className="h-[400px] rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[150px]">Date</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead className="text-right">Change</TableHead>
+                <TableHead className="text-right">Before</TableHead>
+                <TableHead className="text-right">After</TableHead>
+                <TableHead>Comment</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </ScrollArea>
+            </TableHeader>
+            <TableBody>
+              {sortedHistory.map((entry) => (
+                <TableRow key={entry.id}>
+                  <TableCell className="text-xs">{format(new Date(entry.timestamp), 'PPpp')}</TableCell>
+                  <TableCell>
+                    <span className={`px-2 py-0.5 text-xs rounded-full ${
+                        entry.type === 'CREATE_ITEM' ? 'bg-blue-100 text-blue-700' :
+                        entry.type === 'ADD_STOCK' ? 'bg-green-100 text-green-700' :
+                        entry.type === 'CONSUME_STOCK' ? 'bg-red-100 text-red-700' :
+                        entry.type === 'ADJUST_STOCK' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-gray-100 text-gray-700'
+                    }`}>
+                        {formatHistoryType(entry.type)}
+                    </span>
+                  </TableCell>
+                  <TableCell className={`text-right font-medium ${entry.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {entry.change > 0 ? `+${entry.change}` : entry.change}
+                  </TableCell>
+                  <TableCell className="text-right">{entry.quantityBefore}</TableCell>
+                  <TableCell className="text-right font-semibold">{entry.quantityAfter}</TableCell>
+                  <TableCell className="text-xs">{entry.comment}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </ScrollArea>
+      </div>
     );
+  };
+
+  const handlePrintArchivedReport = (report: ArchivedReport) => {
+    const printableArea = document.createElement('div');
+    printableArea.id = 'printable-report-area';
+    document.body.appendChild(printableArea);
+
+    const root = ReactDOM.createRoot(printableArea);
+    // Simulate the Item structure expected by PrintableItemReport
+    const itemForPrinting: Item = {
+        id: report.itemId,
+        name: report.itemName,
+        warehouseId: report.warehouseId,
+        quantity: report.historySnapshot.length > 0 ? report.historySnapshot[0].quantityAfter : 0, // Best guess for current quantity
+        createdAt: report.historySnapshot.length > 0 ? report.historySnapshot[report.historySnapshot.length -1].timestamp : report.printedAt,
+        updatedAt: report.historySnapshot.length > 0 ? report.historySnapshot[0].timestamp : report.printedAt,
+        history: report.historySnapshot,
+    };
+
+    root.render(
+      <PrintableItemReport
+        warehouseName={report.warehouseName}
+        item={itemForPrinting} 
+        printedBy={report.printedBy}
+        printDate={new Date(report.printedAt)}
+      />
+    );
+
+    setTimeout(() => {
+      window.print();
+      root.unmount();
+      if (document.body.contains(printableArea)) {
+        document.body.removeChild(printableArea);
+      }
+    }, 100);
   };
 
 
@@ -185,12 +235,7 @@ export default function ReportsPage() {
             </div>
 
             {selectedItem ? (
-              <div className="mt-6">
-                <h3 className="text-lg font-semibold mb-2">
-                  History for: {selectedItem.name} (Current Stock: {selectedItem.quantity})
-                </h3>
-                {renderItemHistoryTable(selectedItem.history)}
-              </div>
+              renderItemHistoryTable(selectedItem.history, `History for: ${selectedItem.name}`, selectedItem.quantity)
             ) : selectedWarehouseId ? (
               <EmptyState
                 IconComponent={PackageIcon}
@@ -207,20 +252,50 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
 
-        {/* Placeholder for other report types */}
-        {/* <Card>
+        <Card>
           <CardHeader>
-            <CardTitle>Overall Stock Levels (Coming Soon)</CardTitle>
-            <CardDescription>Summary of stock across all warehouses.</CardDescription>
+            <CardTitle>Archived Printed Reports</CardTitle>
+            <CardDescription>View and re-print previously generated reports.</CardDescription>
           </CardHeader>
           <CardContent>
-            <EmptyState
-              IconComponent={BarChart3}
-              title="Feature Under Development"
-              description="This report type will be available in a future update."
-            />
+            {archivedReports.length === 0 ? (
+              <EmptyState
+                IconComponent={Archive}
+                title="No Archived Reports"
+                description="Reports you print will be archived here for future reference."
+              />
+            ) : (
+              <ScrollArea className="h-[400px] rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Item Name</TableHead>
+                      <TableHead>Warehouse</TableHead>
+                      <TableHead>Printed By</TableHead>
+                      <TableHead>Printed At</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {archivedReports.sort((a,b) => new Date(b.printedAt).getTime() - new Date(a.printedAt).getTime()).map((report) => (
+                      <TableRow key={report.id}>
+                        <TableCell className="font-medium">{report.itemName}</TableCell>
+                        <TableCell>{report.warehouseName}</TableCell>
+                        <TableCell>{report.printedBy}</TableCell>
+                        <TableCell className="text-xs">{format(new Date(report.printedAt), 'PPpp')}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="outline" size="sm" onClick={() => handlePrintArchivedReport(report)}>
+                            <Printer className="mr-2 h-3 w-3" /> Re-print
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+            )}
           </CardContent>
-        </Card> */}
+        </Card>
       </div>
     </>
   );
