@@ -11,7 +11,6 @@ import { EmptyState } from "@/components/EmptyState";
 import { useToast } from "@/hooks/use-toast";
 import type { Warehouse, Item, HistoryEntry, ArchivedReport } from '@/lib/types';
 import { format } from 'date-fns';
-// import { ScrollArea } from '@/components/ui/scroll-area'; // ScrollArea removed
 import {
   Select,
   SelectContent,
@@ -25,13 +24,13 @@ import { cn } from "@/lib/utils";
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { PrintableItemReport } from '@/components/PrintableItemReport';
 import { PrintableWarehouseReport } from '@/components/PrintableWarehouseReport';
-import { PrintableTransactionsReport } from '@/components/PrintableTransactionsReport'; 
+import { PrintableTransactionsReport } from '@/components/PrintableTransactionsReport';
 
 interface FlattenedHistoryEntry extends HistoryEntry {
   itemName: string;
   warehouseName: string;
-  itemId: string; 
-  warehouseId: string; 
+  itemId: string;
+  warehouseId: string;
 }
 
 const formatHistoryType = (type: HistoryEntry['type']): string => {
@@ -48,7 +47,7 @@ export default function ReportsPage() {
   const [allWarehouses, setAllWarehouses] = React.useState<Warehouse[]>([]);
   const [allItems, setAllItems] = React.useState<Item[]>([]);
   const [archivedReports, setArchivedReports] = React.useState<ArchivedReport[]>([]);
-  
+
   const [allFlattenedTransactions, setAllFlattenedTransactions] = React.useState<FlattenedHistoryEntry[]>([]);
   const [filteredTransactions, setFilteredTransactions] = React.useState<FlattenedHistoryEntry[]>([]);
 
@@ -56,7 +55,7 @@ export default function ReportsPage() {
   const [selectedItemId, setSelectedItemId] = React.useState<string | null>(null);
   const [startDate, setStartDate] = React.useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = React.useState<Date | undefined>(undefined);
-  
+
   const [isLoading, setIsLoading] = React.useState(true);
   const { toast } = useToast();
 
@@ -68,13 +67,13 @@ export default function ReportsPage() {
     setIsLoading(true);
     try {
       const storedWarehousesString = localStorage.getItem('warehouses');
-      const activeWarehouses: Warehouse[] = storedWarehousesString 
-        ? JSON.parse(storedWarehousesString).filter((wh: Warehouse) => !wh.isArchived) 
+      const activeWarehouses: Warehouse[] = storedWarehousesString
+        ? JSON.parse(storedWarehousesString).filter((wh: Warehouse) => !wh.isArchived)
         : [];
       setAllWarehouses(activeWarehouses);
 
       const storedItemsString = localStorage.getItem('items');
-      const activeItems: Item[] = storedItemsString 
+      const activeItems: Item[] = storedItemsString
         ? JSON.parse(storedItemsString).filter((item: Item) => !item.isArchived)
         : [];
       setAllItems(activeItems);
@@ -94,10 +93,10 @@ export default function ReportsPage() {
           });
         }
       });
-      
+
       flattened.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setAllFlattenedTransactions(flattened);
-      setFilteredTransactions(flattened); 
+      setFilteredTransactions(flattened);
 
       const storedArchivedReportsString = localStorage.getItem('archivedReports');
       if (storedArchivedReportsString) {
@@ -118,7 +117,10 @@ export default function ReportsPage() {
       if (selectedItemId && selectedItemId !== "all_items_option_value_placeholder_for_clear") {
         transactions = transactions.filter(t => t.itemId === selectedItemId);
       }
+    } else if (selectedItemId && selectedItemId !== "all_items_option_value_placeholder_for_clear" ) {
+      transactions = transactions.filter(t => t.itemId === selectedItemId);
     }
+
 
     if (startDate) {
       const startOfDay = new Date(startDate);
@@ -140,7 +142,7 @@ export default function ReportsPage() {
     } else {
         setSelectedWarehouseId(warehouseId);
     }
-    setSelectedItemId(null); 
+    setSelectedItemId(null);
   };
 
   const handleItemChange = (itemId: string) => {
@@ -162,16 +164,19 @@ export default function ReportsPage() {
       }
     }
     if (startDate || endDate) {
-      const dateRange = `${startDate ? format(startDate, 'P') : ''}${startDate && endDate ? ' - ' : ''}${endDate ? format(endDate, 'P') : ''}`;
+      let dateRange = '';
+      if(startDate) dateRange += format(startDate, 'P');
+      if(startDate && endDate) dateRange += ' - ';
+      if(endDate) dateRange += format(endDate, 'P');
       title += ` (${dateRange.trim() || 'All Time'})`;
     }
     return title;
   };
-  
+
   const renderTransactionsTable = () => {
     if (filteredTransactions.length === 0 && !isLoading) {
       return (
-        <EmptyState 
+        <EmptyState
             IconComponent={PackageIcon}
             title="No Transactions Found"
             description="No transactions match your current selection, or no transactions have been recorded yet."
@@ -185,7 +190,7 @@ export default function ReportsPage() {
           {getCurrentReportTitle()}
         </h3>
         <div className="h-[400px] w-full overflow-x-auto rounded-md border">
-          <table className="text-xs border-collapse min-w-full">
+          <table className="text-xs border-collapse">
             <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
               <tr>
                 <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Date</th>
@@ -195,7 +200,7 @@ export default function ReportsPage() {
                 <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">Change</th>
                 <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">Before</th>
                 <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">After</th>
-                <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-normal break-words">Comment</th>
+                <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-normal break-words min-w-[150px]">Comment</th>
               </tr>
             </thead>
             <tbody>
@@ -205,22 +210,26 @@ export default function ReportsPage() {
                   <td className="py-3 px-4 font-medium break-words">{entry.itemName}</td>
                   <td className="py-3 px-4 text-sm text-muted-foreground break-words">{entry.warehouseName}</td>
                   <td className="py-3 px-4 whitespace-nowrap">
-                    <span className={`px-2 py-0.5 text-xs rounded-full ${
+                    <span className={cn(
+                        'px-2 py-0.5 text-xs rounded-full',
                         entry.type === 'CREATE_ITEM' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
                         entry.type === 'ADD_STOCK' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
                         entry.type === 'CONSUME_STOCK' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
                         entry.type === 'ADJUST_STOCK' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
                         'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                    }`}>
+                    )}>
                         {formatHistoryType(entry.type)}
                     </span>
                   </td>
-                  <td className={`py-3 px-4 text-right font-medium whitespace-nowrap ${entry.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                  <td className={cn(
+                      'py-3 px-4 text-right font-medium whitespace-nowrap',
+                      entry.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                    )}>
                     {entry.change > 0 ? `+${entry.change}` : entry.change}
                   </td>
                   <td className="py-3 px-4 text-right whitespace-nowrap">{entry.quantityBefore}</td>
                   <td className="py-3 px-4 text-right font-semibold whitespace-nowrap">{entry.quantityAfter}</td>
-                  <td className="py-3 px-4 text-xs whitespace-normal break-words">{entry.comment}</td>
+                  <td className="py-3 px-4 text-xs whitespace-normal break-words min-w-[150px]">{entry.comment}</td>
                 </tr>
               ))}
             </tbody>
@@ -245,7 +254,7 @@ export default function ReportsPage() {
       <PrintableTransactionsReport
         transactions={filteredTransactions}
         reportTitle={getCurrentReportTitle()}
-        printedBy="Admin User" 
+        printedBy="Admin User"
         printDate={new Date()}
       />
     );
@@ -257,8 +266,8 @@ export default function ReportsPage() {
         if (document.body.contains(printableArea)) {
           document.body.removeChild(printableArea);
         }
-      }, 3000); 
-    }, 250); 
+      }, 3000);
+    }, 250);
   };
 
 
@@ -273,11 +282,11 @@ export default function ReportsPage() {
           id: report.itemId,
           name: report.itemName,
           warehouseId: report.warehouseId,
-          quantity: report.historySnapshot.length > 0 ? report.historySnapshot[0].quantityAfter : 0, 
+          quantity: report.historySnapshot.length > 0 ? report.historySnapshot[0].quantityAfter : 0,
           createdAt: report.historySnapshot.length > 0 ? report.historySnapshot[report.historySnapshot.length -1].timestamp : report.printedAt,
           updatedAt: report.historySnapshot.length > 0 ? report.historySnapshot[0].timestamp : report.printedAt,
           history: report.historySnapshot,
-          isArchived: true, 
+          isArchived: true,
       };
       root.render(
         <PrintableItemReport
@@ -291,9 +300,9 @@ export default function ReportsPage() {
       const warehouseForPrinting: Warehouse = {
         id: report.warehouseId,
         name: report.warehouseName,
-        description: report.warehouseDescription || '', 
-        createdAt: new Date().toISOString(), 
-        updatedAt: new Date().toISOString(), 
+        description: report.warehouseDescription || '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
         isArchived: true,
       };
       root.render(
@@ -319,12 +328,12 @@ export default function ReportsPage() {
         if (document.body.contains(printableArea)) {
           document.body.removeChild(printableArea);
         }
-      }, 3000); 
+      }, 3000);
     }, 250);
   };
 
 
-  if (isLoading && allFlattenedTransactions.length === 0) { 
+  if (isLoading && allFlattenedTransactions.length === 0) {
     return <LoadingSpinner className="mx-auto my-10" size={48} />;
   }
 
@@ -356,7 +365,7 @@ export default function ReportsPage() {
                     <SelectValue placeholder="All Warehouses" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all_warehouses_option_value_placeholder_for_clear">All Warehouses</SelectItem> 
+                    <SelectItem value="all_warehouses_option_value_placeholder_for_clear">All Warehouses</SelectItem>
                     {allWarehouses.map(wh => (
                       <SelectItem key={wh.id} value={wh.id}>
                         {wh.name}
@@ -369,17 +378,17 @@ export default function ReportsPage() {
                 <label htmlFor="item-select" className="block text-sm font-medium text-foreground mb-1">
                   Select Item
                 </label>
-                <Select 
-                    onValueChange={handleItemChange} 
-                    value={selectedItemId || "all_items_option_value_placeholder_for_clear"} 
+                <Select
+                    onValueChange={handleItemChange}
+                    value={selectedItemId || "all_items_option_value_placeholder_for_clear"}
                     disabled={!selectedWarehouseId || selectedWarehouseId === "all_warehouses_option_value_placeholder_for_clear" || itemsInSelectedWarehouse.length === 0}
                 >
                   <SelectTrigger id="item-select" className="w-full">
                     <SelectValue placeholder={
-                        !selectedWarehouseId || selectedWarehouseId === "all_warehouses_option_value_placeholder_for_clear" 
-                        ? "Select warehouse first" 
-                        : itemsInSelectedWarehouse.length === 0 
-                        ? "No items in this warehouse" 
+                        !selectedWarehouseId || selectedWarehouseId === "all_warehouses_option_value_placeholder_for_clear"
+                        ? "Select warehouse first"
+                        : itemsInSelectedWarehouse.length === 0
+                        ? "No items in this warehouse"
                         : "All Items in Warehouse"
                     } />
                   </SelectTrigger>
@@ -471,7 +480,7 @@ export default function ReportsPage() {
               />
             ) : (
               <div className="h-[400px] w-full overflow-x-auto rounded-md border">
-                <table className="text-xs border-collapse min-w-full">
+                <table className="text-xs border-collapse">
                   <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
                     <tr>
                       <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Report For</th>
@@ -493,7 +502,7 @@ export default function ReportsPage() {
                         </td>
                         <td className="py-3 px-4 whitespace-nowrap">{report.printedBy}</td>
                         <td className="py-3 px-4 text-xs whitespace-nowrap">{format(new Date(report.printedAt), 'P p')}</td>
-                        <td className="py-3 px-4 text-right"> 
+                        <td className="py-3 px-4 text-right">
                           <Button variant="outline" size="sm" onClick={() => handlePrintArchivedReport(report)}>
                             <Printer className="mr-2 h-3 w-3" /> Re-print
                           </Button>
@@ -510,4 +519,5 @@ export default function ReportsPage() {
     </>
   );
 }
+
     
