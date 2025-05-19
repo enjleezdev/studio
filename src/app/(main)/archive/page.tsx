@@ -11,14 +11,6 @@ import type { Warehouse, Item } from '@/lib/types';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { format } from 'date-fns';
 
 const updateWarehouseTimestamp = (currentWarehouseId: string) => {
@@ -50,12 +42,12 @@ export default function ArchivePage() {
     try {
       const storedWarehousesString = localStorage.getItem('warehouses');
       const allWhs: Warehouse[] = storedWarehousesString ? JSON.parse(storedWarehousesString) : [];
-      setAllWarehouses(allWhs); // Keep all warehouses for name lookup
-      setArchivedWarehouses(allWhs.filter(wh => wh.isArchived));
+      setAllWarehouses(allWhs); 
+      setArchivedWarehouses(allWhs.filter(wh => wh.isArchived).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
 
       const storedItemsString = localStorage.getItem('items');
       const allIts: Item[] = storedItemsString ? JSON.parse(storedItemsString) : [];
-      setArchivedItems(allIts.filter(item => item.isArchived));
+      setArchivedItems(allIts.filter(item => item.isArchived).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
 
     } catch (error) {
       console.error("Failed to load archived data from localStorage", error);
@@ -86,7 +78,7 @@ export default function ArchivePage() {
         currentAllWarehouses[warehouseIndex] = {
           ...currentAllWarehouses[warehouseIndex],
           isArchived: false,
-          updatedAt: new Date().toISOString(), // Update timestamp on restore
+          updatedAt: new Date().toISOString(), 
         };
         localStorage.setItem('warehouses', JSON.stringify(currentAllWarehouses));
         
@@ -122,12 +114,12 @@ export default function ArchivePage() {
         
         toast({ title: "Item Restored", description: `${restoredItemName} has been restored.` });
         
-        // Update parent warehouse timestamp
         if (parentWarehouseId) {
           updateWarehouseTimestamp(parentWarehouseId);
         }
         
-        loadArchivedData(); 
+        setArchivedItems(prevItems => prevItems.filter(i => i.id !== itemId));
+        // loadArchivedData(); // You might still want this if other data on the page needs a full refresh
       } else {
         toast({ title: "Error", description: "Item not found for restoring.", variant: "destructive" });
       }
@@ -163,28 +155,28 @@ export default function ArchivePage() {
               />
             ) : (
               <ScrollArea className="h-[400px] w-full rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="break-words">Name</TableHead>
-                      <TableHead className="break-words">Description</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                <table className="text-xs border-collapse min-w-full">
+                  <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
+                    <tr>
+                      <th className="py-2 px-3 text-left font-medium text-muted-foreground break-words">Name</th>
+                      <th className="py-2 px-3 text-left font-medium text-muted-foreground break-words">Description</th>
+                      <th className="py-2 px-3 text-right font-medium text-muted-foreground whitespace-nowrap">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
                     {archivedWarehouses.map((wh) => (
-                      <TableRow key={wh.id}>
-                        <TableCell className="font-medium break-words">{wh.name}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground break-words">{wh.description || 'N/A'}</TableCell>
-                        <TableCell className="text-right whitespace-nowrap">
+                      <tr key={wh.id} className="border-b border-border/50 last:border-b-0 hover:bg-muted/10 dark:hover:bg-muted/5">
+                        <td className="py-1.5 px-3 font-medium break-words">{wh.name}</td>
+                        <td className="py-1.5 px-3 text-sm text-muted-foreground break-words">{wh.description || 'N/A'}</td>
+                        <td className="py-1.5 px-3 text-right whitespace-nowrap">
                           <Button variant="outline" size="sm" onClick={() => handleRestoreWarehouse(wh.id)}>
                             <RotateCcw className="mr-2 h-3 w-3" /> Restore
                           </Button>
-                        </TableCell>
-                      </TableRow>
+                        </td>
+                      </tr>
                     ))}
-                  </TableBody>
-                </Table>
+                  </tbody>
+                </table>
               </ScrollArea>
             )}
           </CardContent>
@@ -204,34 +196,34 @@ export default function ArchivePage() {
               />
             ) : (
               <ScrollArea className="h-[400px] w-full rounded-md border">
-                <Table> 
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="break-words">Name</TableHead>
-                      <TableHead className="break-words">Warehouse</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">Quantity</TableHead>
-                      <TableHead className="whitespace-nowrap">Archived On</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                <table className="text-xs border-collapse min-w-full">
+                  <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
+                    <tr>
+                      <th className="py-2 px-3 text-left font-medium text-muted-foreground break-words">Name</th>
+                      <th className="py-2 px-3 text-left font-medium text-muted-foreground break-words">Warehouse</th>
+                      <th className="py-2 px-3 text-right font-medium text-muted-foreground whitespace-nowrap">Quantity</th>
+                      <th className="py-2 px-3 text-left font-medium text-muted-foreground whitespace-nowrap">Archived On</th>
+                      <th className="py-2 px-3 text-right font-medium text-muted-foreground whitespace-nowrap">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
                     {archivedItems.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-medium break-words">{item.name}</TableCell>
-                        <TableCell className="break-words">{getWarehouseName(item.warehouseId)}</TableCell>
-                        <TableCell className="text-right whitespace-nowrap">{item.quantity}</TableCell>
-                        <TableCell className="text-xs whitespace-nowrap">
+                      <tr key={item.id} className="border-b border-border/50 last:border-b-0 hover:bg-muted/10 dark:hover:bg-muted/5">
+                        <td className="py-1.5 px-3 font-medium break-words">{item.name}</td>
+                        <td className="py-1.5 px-3 break-words">{getWarehouseName(item.warehouseId)}</td>
+                        <td className="py-1.5 px-3 text-right whitespace-nowrap">{item.quantity}</td>
+                        <td className="py-1.5 px-3 text-xs whitespace-nowrap">
                           {item.updatedAt ? format(new Date(item.updatedAt), 'P p') : 'N/A'}
-                        </TableCell>
-                        <TableCell className="text-right whitespace-nowrap">
+                        </td>
+                        <td className="py-1.5 px-3 text-right whitespace-nowrap">
                           <Button variant="outline" size="sm" onClick={() => handleRestoreItem(item.id)}>
                             <RotateCcw className="mr-2 h-3 w-3" /> Restore
                           </Button>
-                        </TableCell>
-                      </TableRow>
+                        </td>
+                      </tr>
                     ))}
-                  </TableBody>
-                </Table>
+                  </tbody>
+                </table>
               </ScrollArea>
             )}
           </CardContent>
