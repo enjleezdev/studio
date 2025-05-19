@@ -6,12 +6,11 @@ import ReactDOM from 'react-dom/client';
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Printer, Archive, Package as PackageIcon, Warehouse as WarehouseIcon } from "lucide-react";
+import { Printer, Archive, Package as PackageIcon, Warehouse as WarehouseIcon, CalendarIcon } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { useToast } from "@/hooks/use-toast";
 import type { Warehouse, Item, HistoryEntry, ArchivedReport } from '@/lib/types';
 import { format } from 'date-fns';
-// Removed arSA import as we are reverting to LTR/English
 import {
   Table,
   TableBody,
@@ -28,17 +27,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { PrintableItemReport } from '@/components/PrintableItemReport';
 import { PrintableWarehouseReport } from '@/components/PrintableWarehouseReport';
-import { PrintableTransactionsReport } from '@/components/PrintableTransactionsReport'; // New import
+import { PrintableTransactionsReport } from '@/components/PrintableTransactionsReport'; 
 
-// Augmented history entry type for the consolidated log
 interface FlattenedHistoryEntry extends HistoryEntry {
   itemName: string;
   warehouseName: string;
-  itemId: string; // To help with item filtering
-  warehouseId: string; // To help with warehouse filtering
+  itemId: string; 
+  warehouseId: string; 
 }
 
 const formatHistoryType = (type: HistoryEntry['type']): string => {
@@ -61,6 +62,8 @@ export default function ReportsPage() {
 
   const [selectedWarehouseId, setSelectedWarehouseId] = React.useState<string | null>(null);
   const [selectedItemId, setSelectedItemId] = React.useState<string | null>(null);
+  const [startDate, setStartDate] = React.useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = React.useState<Date | undefined>(undefined);
   
   const [isLoading, setIsLoading] = React.useState(true);
   const { toast } = useToast();
@@ -102,7 +105,7 @@ export default function ReportsPage() {
       
       flattened.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setAllFlattenedTransactions(flattened);
-      setFilteredTransactions(flattened); // Initially show all
+      setFilteredTransactions(flattened); 
 
       const storedArchivedReportsString = localStorage.getItem('archivedReports');
       if (storedArchivedReportsString) {
@@ -124,8 +127,20 @@ export default function ReportsPage() {
         transactions = transactions.filter(t => t.itemId === selectedItemId);
       }
     }
+
+    if (startDate) {
+      const startOfDay = new Date(startDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      transactions = transactions.filter(t => new Date(t.timestamp) >= startOfDay);
+    }
+    if (endDate) {
+      const endOfDay = new Date(endDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      transactions = transactions.filter(t => new Date(t.timestamp) <= endOfDay);
+    }
+
     setFilteredTransactions(transactions);
-  }, [selectedWarehouseId, selectedItemId, allFlattenedTransactions]);
+  }, [selectedWarehouseId, selectedItemId, startDate, endDate, allFlattenedTransactions]);
 
   const handleWarehouseChange = (warehouseId: string) => {
     if (warehouseId === "all_warehouses_option_value_placeholder_for_clear") {
@@ -133,7 +148,7 @@ export default function ReportsPage() {
     } else {
         setSelectedWarehouseId(warehouseId);
     }
-    setSelectedItemId(null); // Reset item selection when warehouse changes or is cleared
+    setSelectedItemId(null); 
   };
 
   const handleItemChange = (itemId: string) => {
@@ -145,15 +160,20 @@ export default function ReportsPage() {
   };
 
   const getCurrentReportTitle = () => {
+    let title = "All Transactions";
     if (selectedWarehouseId && selectedWarehouseId !== "all_warehouses_option_value_placeholder_for_clear") {
       const wh = allWarehouses.find(w => w.id === selectedWarehouseId);
+      title = `Transactions for ${wh?.name || 'Selected Warehouse'}`;
       if (selectedItemId && selectedItemId !== "all_items_option_value_placeholder_for_clear") {
         const item = allItems.find(i => i.id === selectedItemId);
-        return `Transactions for ${item?.name || 'Selected Item'} in ${wh?.name || 'Warehouse'}`;
+        title = `Transactions for ${item?.name || 'Selected Item'} in ${wh?.name || 'Warehouse'}`;
       }
-      return `Transactions for ${wh?.name || 'Selected Warehouse'}`;
     }
-    return "All Transactions";
+    if (startDate || endDate) {
+      const dateRange = `${startDate ? format(startDate, 'P') : ''}${startDate && endDate ? ' - ' : ''}${endDate ? format(endDate, 'P') : ''}`;
+      title += ` (${dateRange.trim() || 'All Time'})`;
+    }
+    return title;
   };
   
   const renderTransactionsTable = () => {
@@ -188,7 +208,7 @@ export default function ReportsPage() {
             </TableHeader>
             <TableBody>
               {filteredTransactions.map((entry) => (
-                <TableRow key={entry.id + entry.timestamp}> {/* Consider more robust key if IDs aren't globally unique */}
+                <TableRow key={entry.id + entry.timestamp}>
                   <TableCell className="text-xs whitespace-nowrap">{format(new Date(entry.timestamp), 'P p')}</TableCell>
                   <TableCell className="font-medium whitespace-nowrap break-words">{entry.itemName}</TableCell>
                   <TableCell className="text-sm text-muted-foreground whitespace-nowrap break-words">{entry.warehouseName}</TableCell>
@@ -233,7 +253,7 @@ export default function ReportsPage() {
       <PrintableTransactionsReport
         transactions={filteredTransactions}
         reportTitle={getCurrentReportTitle()}
-        printedBy="Admin User" // Replace with actual user if available
+        printedBy="Admin User" 
         printDate={new Date()}
       />
     );
@@ -245,8 +265,8 @@ export default function ReportsPage() {
         if (document.body.contains(printableArea)) {
           document.body.removeChild(printableArea);
         }
-      }, 3000); // Allow time for PDF generation before cleanup
-    }, 250); // Allow time for component to render
+      }, 3000); 
+    }, 250); 
   };
 
 
@@ -333,7 +353,7 @@ export default function ReportsPage() {
             </Button>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <label htmlFor="warehouse-select" className="block text-sm font-medium text-foreground mb-1">
                   Select Warehouse
@@ -379,6 +399,65 @@ export default function ReportsPage() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <label htmlFor="start-date-picker" className="block text-sm font-medium text-foreground mb-1">
+                  Start Date
+                </label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="start-date-picker"
+                      variant={"outline"}
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !startDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={startDate}
+                      onSelect={setStartDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div>
+                <label htmlFor="end-date-picker" className="block text-sm font-medium text-foreground mb-1">
+                  End Date
+                </label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="end-date-picker"
+                      variant={"outline"}
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !endDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={endDate}
+                      onSelect={setEndDate}
+                      disabled={(date) =>
+                        startDate ? date < startDate : false
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
             {renderTransactionsTable()}
