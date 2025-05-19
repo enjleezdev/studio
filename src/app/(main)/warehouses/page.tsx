@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -92,20 +93,22 @@ export default function WarehousesPage() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {warehouses.map((warehouse) => (
             <Card key={warehouse.id} className="flex flex-col">
-              <CardHeader className="flex-grow">
-                <div className="flex items-center justify-between">
-                  <CardTitle>{warehouse.name}</CardTitle>
-                  <Home className="h-5 w-5 text-muted-foreground" />
-                </div>
-                {warehouse.description && (
-                  <CardDescription className="mt-1 text-sm text-muted-foreground">{warehouse.description}</CardDescription>
-                )}
-              </CardHeader>
-              <CardContent className="pt-2">
-                <p className="text-sm text-muted-foreground">
-                  Items: 0 
-                </p>
-              </CardContent>
+              <Link href={`/warehouses/${warehouse.id}`} className="flex flex-col flex-grow hover:bg-muted/50 transition-colors rounded-t-lg">
+                <CardHeader className="flex-grow">
+                  <div className="flex items-center justify-between">
+                    <CardTitle>{warehouse.name}</CardTitle>
+                    <Home className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  {warehouse.description && (
+                    <CardDescription className="mt-1 text-sm text-muted-foreground line-clamp-2">{warehouse.description}</CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent className="pt-2">
+                  <p className="text-sm text-muted-foreground">
+                    Items: 0 
+                  </p>
+                </CardContent>
+              </Link>
               <div className="flex items-center justify-end gap-2 p-4 pt-0 border-t mt-auto">
                 <Button variant="ghost" size="icon" onClick={() => alert(`Edit ${warehouse.name} - coming soon!`)} aria-label={`Edit ${warehouse.name}`}>
                   <Edit className="h-4 w-4" />
