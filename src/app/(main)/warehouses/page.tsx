@@ -30,25 +30,23 @@ const AppLogo = ({ className }: { className?: string }) => (
     viewBox="0 0 24 24"
     strokeLinecap="round"
     strokeLinejoin="round"
-    className={cn("h-12 w-12 text-primary", className)}
+    className={cn("h-48 w-48 text-primary", className)} // Increased size from h-12 w-12
   >
-    {/* New Warehouse Outer Shape */}
+    {/* Outer Warehouse Shape */}
     <path
-        d="M3 21V10l9-6 9 6v11" // Path: Bottom-left, up, left-roof-slope, right-roof-slope, down to bottom-right
+        d="M3 21V10l9-6 9 6v11" 
         fill="none"
         stroke="currentColor"
         strokeWidth="1.5"
     />
 
     {/* Inner Workflow Logo (original paths, scaled and centered) */}
-    {/* The group is scaled, so the strokeWidth="2" will appear thinner (2 * 0.5 = 1.0) */}
     <g
-        transform="translate(12 15.5) scale(0.5) translate(-12 -12)" // Centered in the body of the warehouse shape
+        transform="translate(12 15.5) scale(0.5) translate(-12 -12)" 
         stroke="currentColor"
-        strokeWidth="2.5" // Increased slightly to compensate for smaller scale if needed
+        strokeWidth="2.5" 
         fill="none"
     >
-        {/* Original workflow paths */}
         <rect width="8" height="8" x="3" y="3" rx="2"/>
         <path d="M7 11v4a2 2 0 0 0 2 2h4"/>
         <rect width="8" height="8" x="13" y="13" rx="2"/>
