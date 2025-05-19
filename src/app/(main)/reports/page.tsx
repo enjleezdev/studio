@@ -11,7 +11,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { useToast } from "@/hooks/use-toast";
 import type { Warehouse, Item, HistoryEntry, ArchivedReport } from '@/lib/types';
 import { format } from 'date-fns';
-import { ScrollArea } from '@/components/ui/scroll-area';
+// import { ScrollArea } from '@/components/ui/scroll-area'; // ScrollArea removed
 import {
   Select,
   SelectContent,
@@ -184,7 +184,7 @@ export default function ReportsPage() {
         <h3 className="text-lg font-semibold mb-2">
           {getCurrentReportTitle()}
         </h3>
-        <ScrollArea className="h-[400px] w-full rounded-md border">
+        <div className="h-[400px] w-full overflow-x-auto rounded-md border">
           <table className="text-xs border-collapse min-w-full">
             <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
               <tr>
@@ -225,7 +225,7 @@ export default function ReportsPage() {
               ))}
             </tbody>
           </table>
-        </ScrollArea>
+        </div>
       </div>
     );
   };
@@ -335,7 +335,7 @@ export default function ReportsPage() {
         description="View transaction history and stock levels."
       />
       <div className="space-y-6">
-        <Card className="overflow-hidden"> {/* Added overflow-hidden to the Card */}
+        <Card className="overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle>Transportations</CardTitle>
@@ -457,7 +457,7 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden"> {/* Added overflow-hidden to the Card */}
+        <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle>Archived Printed Reports</CardTitle>
             <CardDescription>View and re-print previously generated reports.</CardDescription>
@@ -470,9 +470,9 @@ export default function ReportsPage() {
                 description="Reports you print will be archived here for future reference."
               />
             ) : (
-              <ScrollArea className="h-[400px] w-full rounded-md border">
-                {/* Ensure no whitespace between table and thead for hydration */}
-                <table className="text-xs border-collapse min-w-full"><thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
+              <div className="h-[400px] w-full overflow-x-auto rounded-md border">
+                <table className="text-xs border-collapse min-w-full">
+                  <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
                     <tr>
                       <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Report For</th>
                       <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words text-xs">Type</th>
@@ -502,7 +502,7 @@ export default function ReportsPage() {
                     ))}
                   </tbody>
                 </table>
-              </ScrollArea>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -510,5 +510,4 @@ export default function ReportsPage() {
     </>
   );
 }
-
     
