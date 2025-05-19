@@ -91,7 +91,7 @@ export default function WarehouseDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [warehouseId, router, toast, warehouse]); // Added warehouse to dependency array
+  }, [warehouseId, router, toast]);
 
   React.useEffect(() => {
     if (warehouseId) {
@@ -259,5 +259,3 @@ export default function WarehouseDetailPage() {
     </>
   );
 }
-
-    
