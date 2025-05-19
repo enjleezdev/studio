@@ -42,7 +42,7 @@ export default function ArchivePage() {
     try {
       const storedWarehousesString = localStorage.getItem('warehouses');
       const allWhs: Warehouse[] = storedWarehousesString ? JSON.parse(storedWarehousesString) : [];
-      setAllWarehouses(allWhs); 
+      setAllWarehouses(allWhs);
       setArchivedWarehouses(allWhs.filter(wh => wh.isArchived).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
 
       const storedItemsString = localStorage.getItem('items');
@@ -78,13 +78,13 @@ export default function ArchivePage() {
         currentAllWarehouses[warehouseIndex] = {
           ...currentAllWarehouses[warehouseIndex],
           isArchived: false,
-          updatedAt: new Date().toISOString(), 
+          updatedAt: new Date().toISOString(),
         };
         localStorage.setItem('warehouses', JSON.stringify(currentAllWarehouses));
-        
+
         toast({ title: "Warehouse Restored", description: `${restoredWarehouseName} has been restored.` });
-        
-        loadArchivedData(); 
+
+        loadArchivedData();
       } else {
         toast({ title: "Error", description: "Warehouse not found for restoring.", variant: "destructive" });
       }
@@ -100,26 +100,26 @@ export default function ArchivePage() {
       let allItems: Item[] = existingItemsString ? JSON.parse(existingItemsString) : [];
       let restoredItemName = "The item";
       let parentWarehouseId = "";
-      
+
       const itemIndex = allItems.findIndex(i => i.id === itemId);
       if (itemIndex > -1) {
         restoredItemName = allItems[itemIndex].name;
         parentWarehouseId = allItems[itemIndex].warehouseId;
-        allItems[itemIndex] = { 
-          ...allItems[itemIndex], 
-          isArchived: false, 
-          updatedAt: new Date().toISOString() 
+        allItems[itemIndex] = {
+          ...allItems[itemIndex],
+          isArchived: false,
+          updatedAt: new Date().toISOString()
         };
         localStorage.setItem('items', JSON.stringify(allItems));
-        
+
         toast({ title: "Item Restored", description: `${restoredItemName} has been restored.` });
-        
+
         if (parentWarehouseId) {
           updateWarehouseTimestamp(parentWarehouseId);
         }
-        
+
         setArchivedItems(prevItems => prevItems.filter(i => i.id !== itemId));
-        // loadArchivedData(); // You might still want this if other data on the page needs a full refresh
+        // loadArchivedData(); // Might not be needed if setArchivedItems is sufficient for UI update
       } else {
         toast({ title: "Error", description: "Item not found for restoring.", variant: "destructive" });
       }
@@ -141,7 +141,7 @@ export default function ArchivePage() {
         description="View and manage archived warehouses and items."
       />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+        <Card className="overflow-hidden"> {/* Added overflow-hidden */}
           <CardHeader>
             <CardTitle>Archived Warehouses</CardTitle>
             <CardDescription>Warehouses that have been moved to the archive.</CardDescription>
@@ -182,7 +182,7 @@ export default function ArchivePage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="overflow-hidden"> {/* Added overflow-hidden */}
           <CardHeader>
             <CardTitle>Archived Items</CardTitle>
             <CardDescription>Items that have been moved to the archive.</CardDescription>
@@ -232,3 +232,5 @@ export default function ArchivePage() {
     </>
   );
 }
+
+    
