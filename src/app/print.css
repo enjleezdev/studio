@@ -1,9 +1,10 @@
 
 @media print {
   html, body {
-    height: 100%;
+    height: auto; /* Changed from 100% to prevent stretching if content is short */
     margin: 0;
     padding: 0;
+    background-color: white !important; /* Ensure background of html and body is white */
     -webkit-print-color-adjust: exact; /* Chrome, Safari */
     color-adjust: exact; /* Standard */
   }
@@ -19,12 +20,11 @@
   
   #printable-report-area {
     display: block !important;
-    /* position: absolute; /* Removed for potentially better flow */
-    /* left: 0; /* Removed */
-    /* top: 0; /* Removed */
     width: 100%; /* Let the @page rule handle A4 sizing */
-    background-color: white; /* Ensure background is white for printing */
+    background-color: white; /* Ensure background of the report area itself is white */
     color: black; /* Ensure text is black */
+    margin: 0; /* Ensure no margin on the printable area itself */
+    padding: 0; /* Ensure no padding on the printable area itself */
   }
 
   @page {
@@ -64,4 +64,3 @@
     text-align: center !important;
   }
 }
-
