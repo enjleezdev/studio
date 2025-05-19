@@ -61,7 +61,7 @@ export default function ReportsPage() {
 
   const itemsInSelectedWarehouse = React.useMemo(() => {
     if (!selectedWarehouseId || selectedWarehouseId === "all_warehouses_option_value_placeholder_for_clear") {
-      return allItems.filter(item => !item.isArchived); // Show all items if no warehouse selected or "All Warehouses"
+      return allItems.filter(item => !item.isArchived); 
     }
     return allItems.filter(item => item.warehouseId === selectedWarehouseId && !item.isArchived);
   }, [selectedWarehouseId, allItems]);
@@ -120,6 +120,9 @@ export default function ReportsPage() {
       if (selectedItemId && selectedItemId !== "all_items_option_value_placeholder_for_clear") {
         transactions = transactions.filter(t => t.itemId === selectedItemId);
       }
+    } else if (selectedItemId && selectedItemId !== "all_items_option_value_placeholder_for_clear") {
+      // Filter by item only if "All Warehouses" is selected
+      transactions = transactions.filter(t => t.itemId === selectedItemId);
     }
     
     if (startDate) {
@@ -142,8 +145,6 @@ export default function ReportsPage() {
         setSelectedWarehouseId(warehouseId);
     }
     setSelectedItemId(null); 
-    // This is a mock form object, if using react-hook-form, use its setValue
-    // form.setValue('itemId', "all_items_option_value_placeholder_for_clear"); 
   };
 
   const handleItemChange = (itemId: string) => {
@@ -157,19 +158,15 @@ export default function ReportsPage() {
   const getCurrentReportTitle = () => {
     let title = "All Transactions";
     const selectedWh = allWarehouses.find(w => w.id === selectedWarehouseId);
-    const selectedItm = allItems.find(i => i.id === selectedItemId);
+    const selectedItmObj = allItems.find(i => i.id === selectedItemId);
 
     if (selectedWh) {
       title = `Transactions for ${selectedWh.name}`;
-      if (selectedItm) {
-        title += ` - ${selectedItm.name}`;
+      if (selectedItmObj) {
+        title += ` - ${selectedItmObj.name}`;
       }
-    } else if (selectedItm && selectedWarehouseId === "all_warehouses_option_value_placeholder_for_clear") {
-      // If "All Warehouses" is selected but a specific item (potentially from any warehouse) is chosen
-      // This part of title generation might need refinement based on how global item selection should behave.
-      // For now, it implies item from any warehouse if item is selected and warehouse is "All".
-      const itemFromAll = allItems.find(i => i.id === selectedItemId);
-      if (itemFromAll) title = `Transactions for ${itemFromAll.name} (All Warehouses)`;
+    } else if (selectedItmObj) {
+      title = `Transactions for ${selectedItmObj.name} (All Warehouses)`;
     }
 
 
@@ -203,7 +200,7 @@ export default function ReportsPage() {
           {getCurrentReportTitle()}
         </h3>
         <div className="h-[400px] w-full overflow-x-auto rounded-md border">
-          <table className="text-xs border-collapse">
+          <table className="text-xs border-collapse min-w-full">
             <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
               <tr>
                 <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Date</th>
@@ -352,7 +349,7 @@ export default function ReportsPage() {
         description="View transaction history and stock levels."
       />
       <div className="space-y-6">
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden"> {/* Ensure card clips its content */}
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle>Transportations</CardTitle>
@@ -476,7 +473,7 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden"> {/* Ensure card clips its content */}
           <CardHeader>
             <CardTitle>Archived Printed Reports</CardTitle>
             <CardDescription>View and re-print previously generated reports.</CardDescription>
@@ -491,7 +488,7 @@ export default function ReportsPage() {
               />
             ) : (
               <div className="h-[400px] w-full overflow-x-auto rounded-md border">
-                <table className="text-xs border-collapse">
+                <table className="text-xs border-collapse min-w-full">
                   <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
                     <tr>
                       <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Report For</th>
@@ -531,5 +528,3 @@ export default function ReportsPage() {
     </>
   );
 }
-
-    
