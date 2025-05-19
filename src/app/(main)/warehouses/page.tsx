@@ -7,7 +7,8 @@ import ReactDOM from 'react-dom/client';
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Home, Trash2, Printer, Eye, Repeat } from "lucide-react";
+import { Input } from "@/components/ui/input"; // Added Input import
+import { PlusCircle, Home, Trash2, Printer, Eye, Repeat, Search } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import {
   AlertDialog,
@@ -77,6 +78,7 @@ export default function WarehousesPage() {
   const [allActiveWarehouses, setAllActiveWarehouses] = React.useState<Warehouse[]>([]);
   const [showAll, setShowAll] = React.useState(false);
   const [selectedWarehouseForArchive, setSelectedWarehouseForArchive] = React.useState<Warehouse | null>(null);
+  const [searchTerm, setSearchTerm] = React.useState(""); // Added search term state
   const { toast } = useToast();
 
   const loadWarehouses = React.useCallback(() => {
@@ -203,7 +205,11 @@ export default function WarehousesPage() {
     }, 250); 
   };
 
-  const displayedWarehouses = showAll ? allActiveWarehouses : allActiveWarehouses.slice(0, 4);
+  const filteredWarehouses = allActiveWarehouses.filter(warehouse =>
+    warehouse.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const displayedWarehouses = showAll ? filteredWarehouses : filteredWarehouses.slice(0, 4);
 
   return (
     <TooltipProvider>
@@ -217,24 +223,36 @@ export default function WarehousesPage() {
         title="Warehouses"
         description="Manage all your storage locations from here."
         actions={
-          <Button asChild>
-            <Link href="/warehouses/new">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Add New Warehouse
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search warehouses..."
+                className="pl-8 h-10 w-full sm:w-[200px] md:w-[250px] lg:w-[300px]"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <Button asChild>
+              <Link href="/warehouses/new">
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Add New Warehouse
+              </Link>
+            </Button>
+          </div>
         }
       />
-      {allActiveWarehouses.length === 0 ? (
+      {displayedWarehouses.length === 0 ? (
         <EmptyState
           IconComponent={Home}
-          title="No Active Warehouses Yet"
-          description="Get started by adding your first warehouse or check the archive."
-          action={{
+          title={searchTerm ? "No Warehouses Found" : "No Active Warehouses Yet"}
+          description={searchTerm ? `Your search for "${searchTerm}" did not match any warehouses.` : "Get started by adding your first warehouse or check the archive."}
+          action={!searchTerm ? {
             label: "Add Warehouse",
             href: "/warehouses/new",
             icon: PlusCircle,
-          }}
+          } : undefined}
         />
       ) : (
         <>
@@ -275,7 +293,7 @@ export default function WarehousesPage() {
               </Card>
             ))}
           </div>
-          {allActiveWarehouses.length > 4 && (
+          {filteredWarehouses.length > 4 && (
             <div className="mt-6 flex justify-center">
               <Button variant="outline" onClick={() => setShowAll(prev => !prev)}>
                 {showAll ? <Repeat className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
