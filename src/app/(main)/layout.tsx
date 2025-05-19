@@ -4,28 +4,25 @@
 import type { PropsWithChildren } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarInset, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button"; // Keep for other potential uses, though not directly for SidebarTrigger here
 import { PanelLeft } from "lucide-react";
+import { cn } from "@/lib/utils"; // For potential custom styling if needed
+import { buttonVariants } from "@/components/ui/button"; // For applying button styles if a raw element was used
 
 // New component for the header within SidebarInset
 function MainHeader() {
-  const { isMobile } = useSidebar(); // No need for toggleSidebar here, SidebarTrigger handles it
+  const { isMobile, toggleSidebar } = useSidebar();
+
+  if (!isMobile) {
+    return null; // Don't render the mobile header trigger on larger screens
+  }
 
   return (
-    <>
-      {isMobile && (
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-start gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 md:hidden">
-          {/* SidebarTrigger is part of the ui/sidebar component and handles toggling */}
-          <SidebarTrigger asChild> 
-            <Button size="icon" variant="outline">
-              <PanelLeft className="h-5 w-5" />
-              <span className="sr-only">Toggle Menu</span>
-            </Button>
-          </SidebarTrigger>
-          {/* You can add a logo or page title here if needed for mobile header */}
-        </header>
-      )}
-    </>
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-start gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 md:hidden">
+      {/* SidebarTrigger itself is a Button. Pass props directly to it. */}
+      {/* It already includes PanelLeft icon and sr-only text by default. */}
+      <SidebarTrigger size="icon" variant="outline" />
+    </header>
   );
 }
 
