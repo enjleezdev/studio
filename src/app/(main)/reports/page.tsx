@@ -170,6 +170,8 @@ export default function ReportsPage() {
       const warehouseForPrinting: Warehouse = {
         id: report.warehouseId,
         name: report.warehouseName,
+        createdAt: new Date().toISOString(), // Placeholder, not critical for this report
+        updatedAt: new Date().toISOString(), // Placeholder
       };
       root.render(
         <PrintableWarehouseReport
@@ -212,8 +214,8 @@ export default function ReportsPage() {
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Item Transaction History (Bank Statement Style)</CardTitle>
-            <CardDescription>Select a warehouse and an item to view its detailed transaction log.</CardDescription>
+            {/* <CardTitle>Item Transaction History (Bank Statement Style)</CardTitle>
+            <CardDescription>Select a warehouse and an item to view its detailed transaction log.</CardDescription> */}
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -297,7 +299,7 @@ export default function ReportsPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="break-words">Report For</TableHead>
-                      <TableHead className="break-words">Type</TableHead>
+                      <TableHead className="break-words text-xs">Type</TableHead>
                       <TableHead className="whitespace-nowrap">Printed By</TableHead>
                       <TableHead className="whitespace-nowrap">Printed At</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
@@ -333,3 +335,5 @@ export default function ReportsPage() {
   );
 }
 
+
+    
