@@ -1,6 +1,7 @@
 
 @media print {
-  body {
+  html, body {
+    height: 100%;
     margin: 0;
     padding: 0;
     -webkit-print-color-adjust: exact; /* Chrome, Safari */
@@ -18,9 +19,9 @@
   
   #printable-report-area {
     display: block !important;
-    position: absolute;
-    left: 0;
-    top: 0;
+    /* position: absolute; /* Removed for potentially better flow */
+    /* left: 0; /* Removed */
+    /* top: 0; /* Removed */
     width: 100%; /* Let the @page rule handle A4 sizing */
     background-color: white; /* Ensure background is white for printing */
     color: black; /* Ensure text is black */
@@ -49,7 +50,7 @@
   #printable-report-area .print-table td {
     border: 1px solid #ccc;
     padding: 6px; /* Adjust as needed */
-    text-align: right; /* Default for RTL */
+    text-align: left; /* Default for LTR, adjust if needed for RTL in PrintableItemReport */
   }
   
   #printable-report-area .print-table th {
@@ -63,3 +64,4 @@
     text-align: center !important;
   }
 }
+
