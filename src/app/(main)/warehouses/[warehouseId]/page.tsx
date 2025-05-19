@@ -22,7 +22,8 @@ import { useToast } from '@/hooks/use-toast';
 import { EmptyState } from '@/components/EmptyState';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import type { Item, Warehouse, HistoryEntry } from '@/lib/types';
-import { ScrollArea } from '@/components/ui/scroll-area';
+// Removed ScrollArea import as we will use direct div overflow
+// import { ScrollArea } from '@/components/ui/scroll-area';
 
 
 const itemFormSchema = z.object({
@@ -121,7 +122,7 @@ export default function WarehouseDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [warehouseId, router, toast]);
+  }, [warehouseId, router, toast, selectedItemForHistory?.id]); // Removed selectedItemForHistory from deps, using its id
 
   React.useEffect(() => {
     if (warehouseId) {
@@ -326,14 +327,14 @@ export default function WarehouseDetailPage() {
                     {selectedItemForHistory?.id === item.id && item.history && (
                       <TableRow className="bg-muted/20 hover:bg-muted/30">
                         <TableCell colSpan={3} className="p-0">
-                          <div className="p-4 space-y-3 w-full"> {/* Removed overflow-x-hidden and max-w-full */}
+                          {/* This div will handle the scrolling for the history table */}
+                          <div className="w-full overflow-x-auto max-h-[300px] p-4 space-y-3">
                             <h4 className="text-md font-semibold text-foreground">
                               Transaction History: <span className="font-bold">{item.name}</span>
                             </h4>
                             {item.history.length > 0 ? (
-                              <ScrollArea className="w-full h-[250px] rounded-md border bg-card">
                                 <table className="text-xs border-collapse min-w-full">
-                                  <thead className="bg-muted/40 dark:bg-muted/20">
+                                  <thead className="sticky top-0 bg-muted/80 dark:bg-muted/60 backdrop-blur-sm z-10">
                                     <tr>
                                       <th className="py-2 px-3 text-left font-medium text-muted-foreground whitespace-nowrap">Date</th>
                                       <th className="py-2 px-3 text-left font-medium text-muted-foreground whitespace-nowrap">Type</th>
@@ -368,7 +369,6 @@ export default function WarehouseDetailPage() {
                                     ))}
                                   </tbody>
                                 </table>
-                              </ScrollArea>
                             ) : (
                               <p className="text-sm text-muted-foreground p-4 text-center">No transaction history for this item.</p>
                             )}
@@ -493,6 +493,8 @@ export default function WarehouseDetailPage() {
     </>
   );
 }
+    
+
     
 
     
