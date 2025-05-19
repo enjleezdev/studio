@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Warehouse, Item } from '@/lib/types';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
-import { ScrollArea } from '@/components/ui/scroll-area';
+// ScrollArea removed as we are using div with overflow-x: auto
 import { format } from 'date-fns';
 
 const updateWarehouseTimestamp = (currentWarehouseId: string) => {
@@ -119,12 +119,10 @@ export default function ArchivePage() {
         }
         
         setArchivedItems(prevItems => prevItems.filter(i => i.id !== itemId));
-        // loadArchivedData(); // Might not be needed if setArchivedItems is sufficient for UI update
       } else {
         toast({ title: "Error", description: "Item not found for restoring.", variant: "destructive" });
       }
-    } catch (error)
-{
+    } catch (error) {
       console.error("Failed to restore item from localStorage", error);
       toast({ title: "Error", description: "Failed to restore item.", variant: "destructive" });
     }
@@ -155,7 +153,7 @@ export default function ArchivePage() {
                 description="Warehouses you archive will appear here."
               />
             ) : (
-              <ScrollArea className="h-[400px] w-full rounded-md border">
+              <div className="h-[400px] w-full overflow-x-auto rounded-md border">
                 <table className="text-xs border-collapse"> {/* REMOVED min-w-full */}
                   <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
                     <tr>
@@ -178,7 +176,7 @@ export default function ArchivePage() {
                     ))}
                   </tbody>
                 </table>
-              </ScrollArea>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -196,7 +194,7 @@ export default function ArchivePage() {
                 description="Items you archive will appear here."
               />
             ) : (
-              <ScrollArea className="h-[400px] w-full rounded-md border">
+              <div className="h-[400px] w-full overflow-x-auto rounded-md border">
                 <table className="text-xs border-collapse"> {/* REMOVED min-w-full */}
                   <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
                     <tr>
@@ -225,7 +223,7 @@ export default function ArchivePage() {
                     ))}
                   </tbody>
                 </table>
-              </ScrollArea>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -233,3 +231,4 @@ export default function ArchivePage() {
     </>
   );
 }
+
