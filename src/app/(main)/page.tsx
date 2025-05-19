@@ -1,19 +1,23 @@
-// 'use client'; // No longer needed for simple rendering
+'use client';
 
-// import { useEffect } from 'react';
-// import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function MainPage() {
-  // const router = useRouter();
+  const router = useRouter();
 
-  // useEffect(() => {
-  //   router.replace('/warehouses');
-  // }, [router]);
+  useEffect(() => {
+    router.replace('/warehouses');
+  }, [router]);
 
-  return (
-    <div className="flex h-full w-full items-center justify-center">
-      <p>Hello from the Main Page! If you see this, the layout is working.</p>
-      {/* We can re-add the redirect or navigation to warehouses once this is visible */}
-    </div>
-  );
+  // Return null or a loading indicator while redirecting
+  // Or, you can keep the "Hello" message if you want a brief flash of content
+  // For a cleaner redirect, returning null is often preferred.
+  return null;
+  // If you prefer to show a message:
+  // return (
+  //   <div className="flex h-full w-full items-center justify-center">
+  //     <p>Redirecting to warehouses...</p>
+  //   </div>
+  // );
 }
