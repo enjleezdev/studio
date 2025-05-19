@@ -110,6 +110,7 @@ export default function WarehouseDetailPage() {
       const warehouseItems = allItems.filter(item => item.warehouseId === warehouseId);
       setItems(warehouseItems);
 
+      // If an item's history was being viewed, refresh its data
       if (selectedItemForHistory) {
         const updatedSelectedItem = warehouseItems.find(item => item.id === selectedItemForHistory.id);
         setSelectedItemForHistory(updatedSelectedItem || null);
@@ -121,7 +122,7 @@ export default function WarehouseDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [warehouseId, router, toast]); // Removed selectedItemForHistory from deps
+  }, [warehouseId, router, toast]);
 
   React.useEffect(() => {
     if (warehouseId) {
@@ -336,11 +337,11 @@ export default function WarehouseDetailPage() {
                                   <Table>
                                     <TableHeader>
                                       <TableRow>
-                                        <TableHead className="w-[150px] text-xs">Date</TableHead>
-                                        <TableHead className="text-xs">Type</TableHead>
-                                        <TableHead className="text-right text-xs">Change</TableHead>
-                                        <TableHead className="text-right text-xs">Before</TableHead>
-                                        <TableHead className="text-right text-xs">After</TableHead>
+                                        <TableHead className="w-[150px] text-xs whitespace-nowrap">Date</TableHead>
+                                        <TableHead className="text-xs whitespace-nowrap">Type</TableHead>
+                                        <TableHead className="text-right text-xs whitespace-nowrap">Change</TableHead>
+                                        <TableHead className="text-right text-xs whitespace-nowrap">Before</TableHead>
+                                        <TableHead className="text-right text-xs whitespace-nowrap">After</TableHead>
                                         <TableHead className="text-xs min-w-[150px]">Comment</TableHead>
                                       </TableRow>
                                     </TableHeader>
@@ -348,7 +349,7 @@ export default function WarehouseDetailPage() {
                                       {[...item.history].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((entry) => (
                                         <TableRow key={entry.id} className="text-xs hover:bg-muted/10">
                                           <TableCell className="py-1.5 whitespace-nowrap">{format(new Date(entry.timestamp), "PPpp")}</TableCell>
-                                          <TableCell className="py-1.5">
+                                          <TableCell className="py-1.5 whitespace-nowrap">
                                             <span className={`px-2 py-0.5 rounded-full text-xs ${
                                               entry.type === 'CREATE_ITEM' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' :
                                               entry.type === 'ADD_STOCK' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200' :
@@ -359,12 +360,12 @@ export default function WarehouseDetailPage() {
                                               {entry.type.replace('_', ' ')}
                                             </span>
                                           </TableCell>
-                                          <TableCell className={`text-right font-medium py-1.5 ${entry.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                          <TableCell className={`text-right font-medium py-1.5 whitespace-nowrap ${entry.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                             {entry.change > 0 ? `+${entry.change}` : entry.change}
                                           </TableCell>
-                                          <TableCell className="text-right py-1.5">{entry.quantityBefore}</TableCell>
-                                          <TableCell className="text-right font-semibold py-1.5">{entry.quantityAfter}</TableCell>
-                                          <TableCell className="break-words py-1.5 text-muted-foreground">{entry.comment}</TableCell>
+                                          <TableCell className="text-right py-1.5 whitespace-nowrap">{entry.quantityBefore}</TableCell>
+                                          <TableCell className="text-right font-semibold py-1.5 whitespace-nowrap">{entry.quantityAfter}</TableCell>
+                                          <TableCell className="break-words py-1.5 text-muted-foreground min-w-[150px] whitespace-normal">{entry.comment}</TableCell>
                                         </TableRow>
                                       ))}
                                     </TableBody>
@@ -495,3 +496,6 @@ export default function WarehouseDetailPage() {
     </>
   );
 }
+
+
+    
