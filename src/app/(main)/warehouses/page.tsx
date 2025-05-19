@@ -35,11 +35,10 @@ const AppLogo = ({ className }: { className?: string }) => (
     strokeLinejoin="round"
     className={cn("h-12 w-12 text-primary", className)}
   >
-    {/* New paths for a package icon */}
-    <path d="m7.5 4.27 9 5.15" /> {/* Top flap connecting line */}
-    <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8Z" /> {/* Main box outline */}
-    <path d="m3.3 7 8.7 5 8.7-5" /> {/* Lines showing top surface edges */}
-    <path d="M12 22V12" /> {/* Vertical line down the middle of the front face */}
+    {/* New paths for a "workflow" style icon */}
+    <rect width="8" height="8" x="3" y="3" rx="2"/>
+    <path d="M7 11v4a2 2 0 0 0 2 2h4"/>
+    <rect width="8" height="8" x="13" y="13" rx="2"/>
   </svg>
 );
 
