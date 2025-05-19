@@ -18,7 +18,7 @@ import {
   SidebarMenuSubButton,
   SidebarGroup,
   SidebarGroupLabel,
-  SidebarGroupContent,
+  SidebarGroupContent, // Ensured this is imported
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
@@ -57,11 +57,16 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r">
       <SidebarHeader className={cn(
-        "flex items-center h-14",
-        state === 'collapsed' ? 'justify-center' : 'px-4 justify-start'
+        "flex items-center gap-2 h-14",
+        state === 'collapsed' ? 'justify-center px-2' : 'px-4 justify-start'
       )}>
         <MiniAppLogo />
-        {/* Removed the conditional "FP" span */}
+        <span className={cn(
+          "font-semibold text-primary text-base",
+          state === 'collapsed' && "opacity-0 hidden"
+        )}>
+          Flowgistic Pilot
+        </span>
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
