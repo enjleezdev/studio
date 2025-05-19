@@ -21,6 +21,23 @@ import {
 } from "@/components/ui/table";
 import { format } from 'date-fns';
 
+const updateWarehouseTimestamp = (currentWarehouseId: string) => {
+  try {
+    const storedWarehousesString = localStorage.getItem('warehouses');
+    if (storedWarehousesString) {
+      let warehouses: Warehouse[] = JSON.parse(storedWarehousesString);
+      const warehouseIndex = warehouses.findIndex(wh => wh.id === currentWarehouseId);
+      if (warehouseIndex > -1) {
+        warehouses[warehouseIndex].updatedAt = new Date().toISOString();
+        localStorage.setItem('warehouses', JSON.stringify(warehouses));
+      }
+    }
+  } catch (error) {
+    console.error("Failed to update warehouse timestamp in localStorage", error);
+  }
+};
+
+
 export default function ArchivePage() {
   const { toast } = useToast();
   const [archivedWarehouses, setArchivedWarehouses] = React.useState<Warehouse[]>([]);
@@ -33,7 +50,7 @@ export default function ArchivePage() {
     try {
       const storedWarehousesString = localStorage.getItem('warehouses');
       const allWhs: Warehouse[] = storedWarehousesString ? JSON.parse(storedWarehousesString) : [];
-      setAllWarehouses(allWhs);
+      setAllWarehouses(allWhs); // Keep all warehouses for name lookup
       setArchivedWarehouses(allWhs.filter(wh => wh.isArchived));
 
       const storedItemsString = localStorage.getItem('items');
@@ -60,25 +77,21 @@ export default function ArchivePage() {
   const handleRestoreWarehouse = (warehouseId: string) => {
     try {
       const existingWarehousesString = localStorage.getItem('warehouses');
-      let allWhs: Warehouse[] = existingWarehousesString ? JSON.parse(existingWarehousesString) : [];
+      let currentAllWarehouses: Warehouse[] = existingWarehousesString ? JSON.parse(existingWarehousesString) : [];
       let restoredWarehouseName = "The warehouse";
 
-      const warehouseIndex = allWhs.findIndex(wh => wh.id === warehouseId);
+      const warehouseIndex = currentAllWarehouses.findIndex(wh => wh.id === warehouseId);
       if (warehouseIndex > -1) {
-        restoredWarehouseName = allWhs[warehouseIndex].name;
-        allWhs[warehouseIndex] = {
-          ...allWhs[warehouseIndex],
+        restoredWarehouseName = currentAllWarehouses[warehouseIndex].name;
+        currentAllWarehouses[warehouseIndex] = {
+          ...currentAllWarehouses[warehouseIndex],
           isArchived: false,
-          // Note: Warehouse type doesn't have updatedAt, so we don't update it here.
+          updatedAt: new Date().toISOString(), // Update timestamp on restore
         };
-        localStorage.setItem('warehouses', JSON.stringify(allWhs));
+        localStorage.setItem('warehouses', JSON.stringify(currentAllWarehouses));
         
         toast({ title: "Warehouse Restored", description: `${restoredWarehouseName} has been restored.` });
         
-        // Optimistically update local state or reload all data
-        setArchivedWarehouses(prevWarehouses => prevWarehouses.filter(wh => wh.id !== warehouseId));
-        // Reload all data to ensure consistency across the app if needed elsewhere,
-        // or specifically reload what's needed for this page.
         loadArchivedData(); 
       } else {
         toast({ title: "Error", description: "Warehouse not found for restoring.", variant: "destructive" });
@@ -94,10 +107,12 @@ export default function ArchivePage() {
       const existingItemsString = localStorage.getItem('items');
       let allItems: Item[] = existingItemsString ? JSON.parse(existingItemsString) : [];
       let restoredItemName = "The item";
+      let parentWarehouseId = "";
       
       const itemIndex = allItems.findIndex(i => i.id === itemId);
       if (itemIndex > -1) {
         restoredItemName = allItems[itemIndex].name;
+        parentWarehouseId = allItems[itemIndex].warehouseId;
         allItems[itemIndex] = { 
           ...allItems[itemIndex], 
           isArchived: false, 
@@ -107,10 +122,11 @@ export default function ArchivePage() {
         
         toast({ title: "Item Restored", description: `${restoredItemName} has been restored.` });
         
-        // Optimistically update the local state for immediate feedback
-        setArchivedItems(prevItems => prevItems.filter(i => i.id !== itemId));
+        // Update parent warehouse timestamp
+        if (parentWarehouseId) {
+          updateWarehouseTimestamp(parentWarehouseId);
+        }
         
-        // Reload all data to ensure consistency
         loadArchivedData(); 
       } else {
         toast({ title: "Error", description: "Item not found for restoring.", variant: "destructive" });

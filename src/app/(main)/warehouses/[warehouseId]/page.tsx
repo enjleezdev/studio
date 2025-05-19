@@ -27,6 +27,7 @@ import type { Item, Warehouse, HistoryEntry, ArchivedReport } from '@/lib/types'
 import { PrintableItemReport } from '@/components/PrintableItemReport';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
+
 const itemFormSchema = z.object({
   name: z.string().min(2, {
     message: 'Item name must be at least 2 characters.',
@@ -63,6 +64,24 @@ const translateHistoryType = (type: HistoryEntry['type']): string => {
       return type.replace('_', ' ');
   }
 };
+
+const updateWarehouseTimestamp = (currentWarehouseId: string) => {
+  try {
+    const storedWarehousesString = localStorage.getItem('warehouses');
+    if (storedWarehousesString) {
+      let warehouses: Warehouse[] = JSON.parse(storedWarehousesString);
+      const warehouseIndex = warehouses.findIndex(wh => wh.id === currentWarehouseId);
+      if (warehouseIndex > -1) {
+        warehouses[warehouseIndex].updatedAt = new Date().toISOString();
+        localStorage.setItem('warehouses', JSON.stringify(warehouses));
+      }
+    }
+  } catch (error) {
+    console.error("Failed to update warehouse timestamp in localStorage", error);
+    // Optionally show a toast to the user if this fails, though it's a background task
+  }
+};
+
 
 export default function WarehouseDetailPage() {
   const params = useParams();
@@ -137,7 +156,7 @@ export default function WarehouseDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [warehouseId, router, toast, selectedItemForHistory?.id]); 
+  }, [warehouseId, router, toast]); 
 
   React.useEffect(() => {
     if (warehouseId) {
@@ -181,6 +200,7 @@ export default function WarehouseDetailPage() {
       setIsAddItemDialogOpen(false); 
       itemForm.reset({ name: '', quantity: 1 }); 
       loadWarehouseAndItems(); 
+      updateWarehouseTimestamp(warehouseId);
     } catch (error) {
       console.error("Failed to save item to localStorage", error);
       toast({ title: "Error", description: "Failed to save item. Please try again.", variant: "destructive" });
@@ -237,6 +257,7 @@ export default function WarehouseDetailPage() {
         setIsStockAdjustmentDialogOpen(false);
         stockAdjustmentForm.reset();
         loadWarehouseAndItems();
+        updateWarehouseTimestamp(warehouseId);
       } else {
         toast({ title: "Error", description: "Item not found for update.", variant: "destructive" });
       }
@@ -292,6 +313,7 @@ export default function WarehouseDetailPage() {
         const now = new Date();
         const archivedReport: ArchivedReport = {
           id: `${itemToPrint.id}-${now.getTime()}`,
+          reportType: 'ITEM',
           warehouseId: warehouse.id,
           warehouseName: warehouse.name,
           itemId: itemToPrint.id,
@@ -325,7 +347,7 @@ export default function WarehouseDetailPage() {
   };
 
   const handleArchiveItem = () => {
-    if (!itemToArchive) return;
+    if (!itemToArchive || !warehouseId) return;
 
     try {
       const existingItemsString = localStorage.getItem('items');
@@ -339,6 +361,7 @@ export default function WarehouseDetailPage() {
         toast({ title: "Item Archived", description: `${itemToArchive.name} has been moved to the archive.` });
         setItemToArchive(null); 
         loadWarehouseAndItems(); 
+        updateWarehouseTimestamp(warehouseId);
       } else {
         toast({ title: "Error", description: "Item not found for archiving.", variant: "destructive" });
       }
@@ -655,4 +678,3 @@ export default function WarehouseDetailPage() {
     </TooltipProvider>
   );
 }
-

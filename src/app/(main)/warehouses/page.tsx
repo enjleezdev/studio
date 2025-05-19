@@ -7,7 +7,7 @@ import ReactDOM from 'react-dom/client';
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Home, Trash2, Printer } from "lucide-react";
+import { PlusCircle, Home, Trash2, Printer, Eye, Repeat } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import {
   AlertDialog,
@@ -74,7 +74,8 @@ const AppLogoAndBrand = () => {
 
 
 export default function WarehousesPage() {
-  const [warehouses, setWarehouses] = React.useState<Warehouse[]>([]);
+  const [allActiveWarehouses, setAllActiveWarehouses] = React.useState<Warehouse[]>([]);
+  const [showAll, setShowAll] = React.useState(false);
   const [selectedWarehouseForArchive, setSelectedWarehouseForArchive] = React.useState<Warehouse | null>(null);
   const { toast } = useToast();
 
@@ -84,7 +85,13 @@ export default function WarehousesPage() {
       if (storedWarehousesString) {
         const allStoredWarehouses: Warehouse[] = JSON.parse(storedWarehousesString);
         const activeWarehouses = allStoredWarehouses.filter(wh => !wh.isArchived);
-        setWarehouses(activeWarehouses);
+        
+        activeWarehouses.sort((a, b) => {
+          const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+          const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+          return dateB - dateA; // Descending for most recent
+        });
+        setAllActiveWarehouses(activeWarehouses);
       }
     } catch (error) {
       console.error("Failed to load warehouses from localStorage", error);
@@ -105,7 +112,7 @@ export default function WarehousesPage() {
       
       const warehouseIndex = allWarehouses.findIndex(wh => wh.id === selectedWarehouseForArchive.id);
       if (warehouseIndex > -1) {
-        allWarehouses[warehouseIndex] = { ...allWarehouses[warehouseIndex], isArchived: true };
+        allWarehouses[warehouseIndex] = { ...allWarehouses[warehouseIndex], isArchived: true, updatedAt: new Date().toISOString() };
         localStorage.setItem('warehouses', JSON.stringify(allWarehouses));
         
         const existingItemsString = localStorage.getItem('items');
@@ -196,6 +203,7 @@ export default function WarehousesPage() {
     }, 250); 
   };
 
+  const displayedWarehouses = showAll ? allActiveWarehouses : allActiveWarehouses.slice(0, 4);
 
   return (
     <TooltipProvider>
@@ -217,7 +225,7 @@ export default function WarehousesPage() {
           </Button>
         }
       />
-      {warehouses.length === 0 ? (
+      {allActiveWarehouses.length === 0 ? (
         <EmptyState
           IconComponent={Home}
           title="No Active Warehouses Yet"
@@ -229,43 +237,53 @@ export default function WarehousesPage() {
           }}
         />
       ) : (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {warehouses.map((warehouse) => (
-            <Card key={warehouse.id} className="flex flex-col">
-              <Link href={`/warehouses/${warehouse.id}`} className="flex flex-col flex-grow hover:bg-muted/50 transition-colors rounded-t-lg">
-                <CardHeader className="flex-grow px-2 py-1"> 
-                  <div className="flex items-start justify-between">
-                    <CardTitle className="text-base font-medium mb-0 break-words">{warehouse.name}</CardTitle> 
-                    <Home className="h-4 w-4 text-muted-foreground shrink-0" />
-                  </div>
-                  {warehouse.description && (
-                    <CardDescription className="text-xs text-muted-foreground line-clamp-2 break-words">{warehouse.description}</CardDescription> 
-                  )}
-                </CardHeader>
-              </Link>
-              <div className="flex items-center justify-end gap-0.5 p-1 pt-0 border-t mt-auto"> 
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="sm" onClick={() => handlePrintWarehouseReport(warehouse)} aria-label={`Print report for ${warehouse.name}`}>
-                      <Printer className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent><p>Print Warehouse Report</p></TooltipContent>
-                </Tooltip>
-                <AlertDialogTrigger asChild>
-                   <Tooltip>
+        <>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {displayedWarehouses.map((warehouse) => (
+              <Card key={warehouse.id} className="flex flex-col">
+                <Link href={`/warehouses/${warehouse.id}`} className="flex flex-col flex-grow hover:bg-muted/50 transition-colors rounded-t-lg">
+                  <CardHeader className="flex-grow px-2 py-1"> 
+                    <div className="flex items-start justify-between">
+                      <CardTitle className="text-base font-medium mb-0 break-words">{warehouse.name}</CardTitle> 
+                      <Home className="h-4 w-4 text-muted-foreground shrink-0" />
+                    </div>
+                    {warehouse.description && (
+                      <CardDescription className="text-xs text-muted-foreground line-clamp-2 break-words">{warehouse.description}</CardDescription> 
+                    )}
+                  </CardHeader>
+                </Link>
+                <div className="flex items-center justify-end gap-0.5 p-1 pt-0 border-t mt-auto"> 
+                  <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setSelectedWarehouseForArchive(warehouse)} aria-label={`Archive ${warehouse.name}`}>
-                            <Trash2 className="h-4 w-4" />
-                        </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handlePrintWarehouseReport(warehouse)} aria-label={`Print report for ${warehouse.name}`}>
+                        <Printer className="h-4 w-4" />
+                      </Button>
                     </TooltipTrigger>
-                    <TooltipContent><p>Archive Warehouse</p></TooltipContent>
-                   </Tooltip>
-                </AlertDialogTrigger>
-              </div>
-            </Card>
-          ))}
-        </div>
+                    <TooltipContent><p>Print Warehouse Report</p></TooltipContent>
+                  </Tooltip>
+                  <AlertDialogTrigger asChild>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setSelectedWarehouseForArchive(warehouse)} aria-label={`Archive ${warehouse.name}`}>
+                              <Trash2 className="h-4 w-4" />
+                          </Button>
+                      </TooltipTrigger>
+                      <TooltipContent><p>Archive Warehouse</p></TooltipContent>
+                    </Tooltip>
+                  </AlertDialogTrigger>
+                </div>
+              </Card>
+            ))}
+          </div>
+          {allActiveWarehouses.length > 4 && (
+            <div className="mt-6 flex justify-center">
+              <Button variant="outline" onClick={() => setShowAll(prev => !prev)}>
+                {showAll ? <Repeat className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
+                {showAll ? "Show Recent (Top 4)" : "View All Warehouses"}
+              </Button>
+            </div>
+          )}
+        </>
       )}
       
       {selectedWarehouseForArchive && (
@@ -288,4 +306,3 @@ export default function WarehousesPage() {
     </TooltipProvider>
   );
 }
-

@@ -34,10 +34,6 @@ const warehouseFormSchema = z.object({
 
 type WarehouseFormValues = z.infer<typeof warehouseFormSchema>;
 
-interface StoredWarehouse extends WarehouseFormValues {
-  id: string;
-  isArchived?: boolean;
-}
 
 export default function NewWarehousePage() {
   const router = useRouter();
@@ -51,16 +47,19 @@ export default function NewWarehousePage() {
   });
 
   function onSubmit(data: WarehouseFormValues) {
-    const newWarehouse: StoredWarehouse = {
+    const now = new Date().toISOString();
+    const newWarehouse: Warehouse = {
       id: Date.now().toString(),
       name: data.name,
       description: data.description,
-      isArchived: false, // Initialize as not archived
+      isArchived: false,
+      createdAt: now,
+      updatedAt: now,
     };
 
     try {
       const existingWarehousesString = localStorage.getItem('warehouses');
-      const existingWarehouses: StoredWarehouse[] = existingWarehousesString ? JSON.parse(existingWarehousesString) : [];
+      const existingWarehouses: Warehouse[] = existingWarehousesString ? JSON.parse(existingWarehousesString) : [];
       existingWarehouses.push(newWarehouse);
       localStorage.setItem('warehouses', JSON.stringify(existingWarehouses));
       

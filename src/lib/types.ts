@@ -4,6 +4,8 @@ export interface Warehouse {
   name: string;
   description?: string;
   isArchived?: boolean; // Added for soft delete
+  createdAt: string; // ISO string date
+  updatedAt: string; // ISO string date
 }
 
 export interface Item {
