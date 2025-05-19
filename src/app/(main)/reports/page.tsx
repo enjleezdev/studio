@@ -6,7 +6,7 @@ import ReactDOM from 'react-dom/client';
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Printer, Archive, Package as PackageIcon, Warehouse as WarehouseIcon, CalendarIcon } from "lucide-react";
+import { Printer, Archive, Package as PackageIcon, CalendarIcon } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { useToast } from "@/hooks/use-toast";
 import type { Warehouse, Item, HistoryEntry, ArchivedReport } from '@/lib/types';
@@ -61,7 +61,7 @@ export default function ReportsPage() {
 
   const itemsInSelectedWarehouse = React.useMemo(() => {
     if (!selectedWarehouseId || selectedWarehouseId === "all_warehouses_option_value_placeholder_for_clear") {
-      return allItems.filter(item => !item.isArchived); 
+      return allItems.filter(item => !item.isArchived);
     }
     return allItems.filter(item => item.warehouseId === selectedWarehouseId && !item.isArchived);
   }, [selectedWarehouseId, allItems]);
@@ -113,7 +113,7 @@ export default function ReportsPage() {
   }, [toast]);
 
   React.useEffect(() => {
-    let transactions = [...allFlattenedTransactions]; 
+    let transactions = [...allFlattenedTransactions];
 
     if (selectedWarehouseId && selectedWarehouseId !== "all_warehouses_option_value_placeholder_for_clear") {
       transactions = transactions.filter(t => t.warehouseId === selectedWarehouseId);
@@ -121,10 +121,9 @@ export default function ReportsPage() {
         transactions = transactions.filter(t => t.itemId === selectedItemId);
       }
     } else if (selectedItemId && selectedItemId !== "all_items_option_value_placeholder_for_clear") {
-      // Filter by item only if "All Warehouses" is selected
       transactions = transactions.filter(t => t.itemId === selectedItemId);
     }
-    
+
     if (startDate) {
       const startOfDay = new Date(startDate);
       startOfDay.setHours(0, 0, 0, 0);
@@ -140,18 +139,18 @@ export default function ReportsPage() {
 
   const handleWarehouseChange = (warehouseId: string) => {
     if (warehouseId === "all_warehouses_option_value_placeholder_for_clear") {
-        setSelectedWarehouseId(null);
+      setSelectedWarehouseId(null);
     } else {
-        setSelectedWarehouseId(warehouseId);
+      setSelectedWarehouseId(warehouseId);
     }
-    setSelectedItemId(null); 
+    setSelectedItemId(null);
   };
 
   const handleItemChange = (itemId: string) => {
-     if (itemId === "all_items_option_value_placeholder_for_clear") {
-        setSelectedItemId(null);
+    if (itemId === "all_items_option_value_placeholder_for_clear") {
+      setSelectedItemId(null);
     } else {
-        setSelectedItemId(itemId);
+      setSelectedItemId(itemId);
     }
   };
 
@@ -169,84 +168,14 @@ export default function ReportsPage() {
       title = `Transactions for ${selectedItmObj.name} (All Warehouses)`;
     }
 
-
     if (startDate || endDate) {
       let dateRange = '';
-      if(startDate) dateRange += format(startDate, 'P');
-      if(startDate && endDate) dateRange += ' - ';
-      if(endDate) dateRange += format(endDate, 'P');
+      if (startDate) dateRange += format(startDate, 'P');
+      if (startDate && endDate) dateRange += ' - ';
+      if (endDate) dateRange += format(endDate, 'P');
       title += ` (${dateRange.trim() || 'All Time'})`;
     }
     return title;
-  };
-
-  const renderTransactionsTable = () => {
-    if (isLoading) {
-        return <LoadingSpinner className="mx-auto my-10" size={32} />;
-    }
-    if (filteredTransactions.length === 0) {
-      return (
-        <EmptyState
-            IconComponent={PackageIcon}
-            title="No Transactions Found"
-            description="No transactions match your current selection, or no transactions have been recorded yet."
-        />
-      );
-    }
-
-    return (
-      <div className="mt-6">
-        <h3 className="text-lg font-semibold mb-2">
-          {getCurrentReportTitle()}
-        </h3>
-        <div className="h-[400px] w-full overflow-x-auto rounded-md border">
-          <table className="text-xs border-collapse min-w-full">
-            <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
-              <tr>
-                <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Date</th>
-                <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Item Name</th>
-                <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Warehouse</th>
-                <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Type</th>
-                <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">Change</th>
-                <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">Before</th>
-                <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">After</th>
-                <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-normal break-words min-w-[150px]">Comment</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredTransactions.map((entry) => (
-                <tr key={entry.id + entry.timestamp} className="border-b border-border/50 last:border-b-0 hover:bg-muted/10 dark:hover:bg-muted/5">
-                  <td className="py-3 px-4 whitespace-nowrap">{format(new Date(entry.timestamp), 'P p')}</td>
-                  <td className="py-3 px-4 break-words">{entry.itemName}</td>
-                  <td className="py-3 px-4 break-words">{entry.warehouseName}</td>
-                  <td className="py-3 px-4 whitespace-nowrap">
-                    <span className={cn(
-                        'px-2 py-0.5 text-xs rounded-full',
-                        entry.type === 'CREATE_ITEM' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
-                        entry.type === 'ADD_STOCK' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
-                        entry.type === 'CONSUME_STOCK' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
-                        entry.type === 'ADJUST_STOCK' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
-                        'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                    )}>
-                        {formatHistoryType(entry.type)}
-                    </span>
-                  </td>
-                  <td className={cn(
-                      'py-3 px-4 text-right font-medium whitespace-nowrap',
-                      entry.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                    )}>
-                    {entry.change > 0 ? `+${entry.change}` : entry.change}
-                  </td>
-                  <td className="py-3 px-4 text-right whitespace-nowrap">{entry.quantityBefore}</td>
-                  <td className="py-3 px-4 text-right font-semibold whitespace-nowrap">{entry.quantityAfter}</td>
-                  <td className="py-3 px-4 text-xs whitespace-normal break-words min-w-[150px]">{entry.comment}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
   };
 
   const handlePrintVisibleTransactions = () => {
@@ -264,7 +193,7 @@ export default function ReportsPage() {
       <PrintableTransactionsReport
         transactions={filteredTransactions}
         reportTitle={getCurrentReportTitle()}
-        printedBy="Admin User" 
+        printedBy="Admin User"
         printDate={new Date()}
       />
     );
@@ -280,7 +209,6 @@ export default function ReportsPage() {
     }, 250);
   };
 
-
   const handlePrintArchivedReport = (report: ArchivedReport) => {
     const printableArea = document.createElement('div');
     printableArea.id = 'printable-report-area';
@@ -289,14 +217,14 @@ export default function ReportsPage() {
 
     if (report.reportType === 'ITEM' && report.itemId && report.itemName && report.historySnapshot) {
       const itemForPrinting: Item = {
-          id: report.itemId,
-          name: report.itemName,
-          warehouseId: report.warehouseId, 
-          quantity: report.historySnapshot.length > 0 ? report.historySnapshot[0].quantityAfter : 0, 
-          createdAt: report.historySnapshot.length > 0 ? report.historySnapshot[report.historySnapshot.length -1].timestamp : report.printedAt,
-          updatedAt: report.historySnapshot.length > 0 ? report.historySnapshot[0].timestamp : report.printedAt,
-          history: report.historySnapshot,
-          isArchived: true, 
+        id: report.itemId,
+        name: report.itemName,
+        warehouseId: report.warehouseId,
+        quantity: report.historySnapshot.length > 0 ? report.historySnapshot[0].quantityAfter : 0,
+        createdAt: report.historySnapshot.length > 0 ? report.historySnapshot[report.historySnapshot.length - 1].timestamp : report.printedAt,
+        updatedAt: report.historySnapshot.length > 0 ? report.historySnapshot[0].timestamp : report.printedAt,
+        history: report.historySnapshot,
+        isArchived: true,
       };
       root.render(
         <PrintableItemReport
@@ -310,10 +238,10 @@ export default function ReportsPage() {
       const warehouseForPrinting: Warehouse = {
         id: report.warehouseId,
         name: report.warehouseName,
-        description: report.warehouseDescription || '', 
-        createdAt: new Date().toISOString(), 
-        updatedAt: new Date().toISOString(), 
-        isArchived: true, 
+        description: report.warehouseDescription || '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isArchived: true,
       };
       root.render(
         <PrintableWarehouseReport
@@ -324,7 +252,7 @@ export default function ReportsPage() {
         />
       );
     } else {
-      toast({ title: "Error", description: "Cannot re-print report. Invalid report data.", variant: "destructive"});
+      toast({ title: "Error", description: "Cannot re-print report. Invalid report data.", variant: "destructive" });
       if (document.body.contains(printableArea)) {
         document.body.removeChild(printableArea);
       }
@@ -349,7 +277,7 @@ export default function ReportsPage() {
         description="View transaction history and stock levels."
       />
       <div className="space-y-6">
-        <Card className="overflow-hidden"> {/* Ensure card clips its content */}
+        <Card className="overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle>Transportations</CardTitle>
@@ -384,23 +312,23 @@ export default function ReportsPage() {
                   Select Item
                 </label>
                 <Select
-                    onValueChange={handleItemChange}
-                    value={selectedItemId || "all_items_option_value_placeholder_for_clear"}
-                    disabled={itemsInSelectedWarehouse.length === 0 && !!selectedWarehouseId && selectedWarehouseId !== "all_warehouses_option_value_placeholder_for_clear"}
+                  onValueChange={handleItemChange}
+                  value={selectedItemId || "all_items_option_value_placeholder_for_clear"}
+                  disabled={itemsInSelectedWarehouse.length === 0 && !!selectedWarehouseId && selectedWarehouseId !== "all_warehouses_option_value_placeholder_for_clear"}
                 >
                   <SelectTrigger id="item-select" className="w-full">
                     <SelectValue placeholder={
-                        !selectedWarehouseId || selectedWarehouseId === "all_warehouses_option_value_placeholder_for_clear"
+                      !selectedWarehouseId || selectedWarehouseId === "all_warehouses_option_value_placeholder_for_clear"
                         ? "All Items (Any Warehouse)"
                         : itemsInSelectedWarehouse.length === 0
-                        ? "No items in this warehouse"
-                        : "All Items in Warehouse"
+                          ? "No items in this warehouse"
+                          : "All Items in Warehouse"
                     } />
                   </SelectTrigger>
                   <SelectContent>
-                     <SelectItem value="all_items_option_value_placeholder_for_clear">
-                        { !selectedWarehouseId || selectedWarehouseId === "all_warehouses_option_value_placeholder_for_clear" ? "All Items (Any Warehouse)" : "All Items in Warehouse"}
-                     </SelectItem>
+                    <SelectItem value="all_items_option_value_placeholder_for_clear">
+                      {!selectedWarehouseId || selectedWarehouseId === "all_warehouses_option_value_placeholder_for_clear" ? "All Items (Any Warehouse)" : "All Items in Warehouse"}
+                    </SelectItem>
                     {itemsInSelectedWarehouse.map(item => (
                       <SelectItem key={item.id} value={item.id}>
                         {item.name} (Qty: {item.quantity})
@@ -469,58 +397,119 @@ export default function ReportsPage() {
                 </Popover>
               </div>
             </div>
-            {renderTransactionsTable()}
+            
+            {isLoading ? (
+              <LoadingSpinner className="mx-auto my-10" size={32} />
+            ) : filteredTransactions.length === 0 ? (
+              <EmptyState
+                IconComponent={PackageIcon}
+                title="No Transactions Found"
+                description="No transactions match your current selection, or no transactions have been recorded yet."
+              />
+            ) : (
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold mb-2">
+                  {getCurrentReportTitle()}
+                </h3>
+                <div className="h-[400px] w-full overflow-x-auto rounded-md border">
+                  <table className="text-xs border-collapse min-w-full">
+                    <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
+                      <tr>
+                        <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Date</th>
+                        <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Item Name</th>
+                        <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Warehouse</th>
+                        <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Type</th>
+                        <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">Change</th>
+                        <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">Before</th>
+                        <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">After</th>
+                        <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-normal break-words min-w-[150px]">Comment</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredTransactions.map((entry) => (
+                        <tr key={entry.id + entry.timestamp} className="border-b border-border/50 last:border-b-0 hover:bg-muted/10 dark:hover:bg-muted/5">
+                          <td className="py-3 px-4 whitespace-nowrap">{format(new Date(entry.timestamp), 'P p')}</td>
+                          <td className="py-3 px-4 break-words">{entry.itemName}</td>
+                          <td className="py-3 px-4 break-words">{entry.warehouseName}</td>
+                          <td className="py-3 px-4 whitespace-nowrap">
+                            <span className={cn(
+                              'px-2 py-0.5 text-xs rounded-full',
+                              entry.type === 'CREATE_ITEM' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
+                                entry.type === 'ADD_STOCK' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
+                                  entry.type === 'CONSUME_STOCK' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
+                                    entry.type === 'ADJUST_STOCK' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
+                                      'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                            )}>
+                              {formatHistoryType(entry.type)}
+                            </span>
+                          </td>
+                          <td className={cn(
+                            'py-3 px-4 text-right font-medium whitespace-nowrap',
+                            entry.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                          )}>
+                            {entry.change > 0 ? `+${entry.change}` : entry.change}
+                          </td>
+                          <td className="py-3 px-4 text-right whitespace-nowrap">{entry.quantityBefore}</td>
+                          <td className="py-3 px-4 text-right font-semibold whitespace-nowrap">{entry.quantityAfter}</td>
+                          <td className="py-3 px-4 text-xs whitespace-normal break-words min-w-[150px]">{entry.comment}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden"> {/* Ensure card clips its content */}
+        <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle>Archived Printed Reports</CardTitle>
             <CardDescription>View and re-print previously generated reports.</CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoading ? <LoadingSpinner className="mx-auto my-6" /> :(
-            archivedReports.length === 0 ? (
-              <EmptyState
-                IconComponent={Archive}
-                title="No Archived Reports"
-                description="Reports you print will be archived here for future reference."
-              />
-            ) : (
-              <div className="h-[400px] w-full overflow-x-auto rounded-md border">
-                <table className="text-xs border-collapse min-w-full">
-                  <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
-                    <tr>
-                      <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Report For</th>
-                      <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Type</th>
-                      <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Printed By</th>
-                      <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Printed At</th>
-                      <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {archivedReports.sort((a,b) => new Date(b.printedAt).getTime() - new Date(a.printedAt).getTime()).map((report) => (
-                      <tr key={report.id} className="border-b border-border/50 last:border-b-0 hover:bg-muted/10 dark:hover:bg-muted/5">
-                        <td className="py-3 px-4 font-medium break-words">
-                          {report.reportType === 'ITEM' ? report.itemName : report.warehouseName}
-                          {report.reportType === 'ITEM' && <span className="text-xs text-muted-foreground block"> (in {report.warehouseName})</span>}
-                        </td>
-                        <td className="py-3 px-4 break-words">
-                          {report.reportType === 'ITEM' ? 'Item Details' : report.reportType === 'WAREHOUSE' ? 'Warehouse Summary' : 'Transactions'}
-                        </td>
-                        <td className="py-3 px-4 whitespace-nowrap">{report.printedBy}</td>
-                        <td className="py-3 px-4 text-xs whitespace-nowrap">{format(new Date(report.printedAt), 'P p')}</td>
-                        <td className="py-3 px-4 text-right whitespace-nowrap">
-                          <Button variant="outline" size="sm" onClick={() => handlePrintArchivedReport(report)}>
-                            <Printer className="mr-2 h-3 w-3" /> Re-print
-                          </Button>
-                        </td>
+            {isLoading ? <LoadingSpinner className="mx-auto my-6" /> : (
+              archivedReports.length === 0 ? (
+                <EmptyState
+                  IconComponent={Archive}
+                  title="No Archived Reports"
+                  description="Reports you print will be archived here for future reference."
+                />
+              ) : (
+                <div className="h-[400px] w-full overflow-x-auto rounded-md border">
+                  <table className="text-xs border-collapse min-w-full">
+                    <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
+                      <tr>
+                        <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Report For</th>
+                        <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Type</th>
+                        <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Printed By</th>
+                        <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Printed At</th>
+                        <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )
+                    </thead>
+                    <tbody>
+                      {archivedReports.sort((a, b) => new Date(b.printedAt).getTime() - new Date(a.printedAt).getTime()).map((report) => (
+                        <tr key={report.id} className="border-b border-border/50 last:border-b-0 hover:bg-muted/10 dark:hover:bg-muted/5">
+                          <td className="py-3 px-4 font-medium break-words">
+                            {report.reportType === 'ITEM' ? report.itemName : report.warehouseName}
+                            {report.reportType === 'ITEM' && <span className="text-xs text-muted-foreground block"> (in {report.warehouseName})</span>}
+                          </td>
+                          <td className="py-3 px-4 break-words">
+                            {report.reportType === 'ITEM' ? 'Item Details' : report.reportType === 'WAREHOUSE' ? 'Warehouse Summary' : 'Transactions'}
+                          </td>
+                          <td className="py-3 px-4 whitespace-nowrap">{report.printedBy}</td>
+                          <td className="py-3 px-4 text-xs whitespace-nowrap">{format(new Date(report.printedAt), 'P p')}</td>
+                          <td className="py-3 px-4 text-right whitespace-nowrap">
+                            <Button variant="outline" size="sm" onClick={() => handlePrintArchivedReport(report)}>
+                              <Printer className="mr-2 h-3 w-3" /> Re-print
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )
             )}
           </CardContent>
         </Card>
