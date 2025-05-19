@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Stock Pilot - Inventory Management', // Updated title
-  description: 'Efficiently manage your warehouse inventory with Stock Pilot.', // Updated description
+  title: 'Stock Pilot - Inventory Management',
+  description: 'Efficiently manage your warehouse inventory with Stock Pilot.',
 };
 
 export default function RootLayout({
@@ -26,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning> {/* Reverted lang to en and removed dir=rtl */}
+    <html lang="en" suppressHydrationWarning={true}>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
         {children}
         <Toaster />
