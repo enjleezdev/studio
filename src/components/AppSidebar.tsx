@@ -57,17 +57,17 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r">
       <SidebarHeader className={cn(
-        "flex items-center h-14 gap-2", // Added gap-2
-        state === 'collapsed' ? 'justify-center px-2' : 'px-4 justify-start'
+        "flex items-center h-14", // Base flex styles
+        state === 'collapsed' ? 'justify-center px-2' : 'px-4 justify-start gap-2' // Conditional alignment and gap
       )}>
         <MiniAppLogo />
-        <span className={cn(
-          "font-semibold text-primary text-lg whitespace-nowrap overflow-hidden",
-           // Hide text when sidebar is collapsed
-          state === 'collapsed' && "opacity-0 hidden"
-        )}>
-          Flowgistic Pilot
-        </span>
+        {state !== 'collapsed' && ( // Render text only if sidebar is not collapsed
+          <span className={cn(
+            "font-semibold text-primary text-base whitespace-nowrap overflow-hidden text-ellipsis"
+          )}>
+            Flowgistic Pilot
+          </span>
+        )}
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
