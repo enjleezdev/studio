@@ -32,26 +32,26 @@ const AppLogo = ({ className }: { className?: string }) => (
     strokeLinejoin="round"
     className={cn("h-12 w-12 text-primary", className)}
   >
-    {/* Outer Warehouse Box: uses currentColor for stroke from className */}
-    <rect 
-      x="1.5" y="1.5" width="21" height="21" rx="3" ry="3" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="1.5" 
+    {/* New Warehouse Outer Shape */}
+    <path
+        d="M3 21V10l9-6 9 6v11" // Path: Bottom-left, up, left-roof-slope, right-roof-slope, down to bottom-right
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
     />
 
     {/* Inner Workflow Logo (original paths, scaled and centered) */}
-    {/* The group is scaled, so the strokeWidth="2" will appear thinner (2 * 0.7 = 1.4) */}
-    <g 
-      transform="translate(12 12) scale(0.7) translate(-12 -12)" 
-      stroke="currentColor" 
-      strokeWidth="2" // This will be effectively 1.4px after scaling
-      fill="none" 
+    {/* The group is scaled, so the strokeWidth="2" will appear thinner (2 * 0.5 = 1.0) */}
+    <g
+        transform="translate(12 15.5) scale(0.5) translate(-12 -12)" // Centered in the body of the warehouse shape
+        stroke="currentColor"
+        strokeWidth="2.5" // Increased slightly to compensate for smaller scale if needed
+        fill="none"
     >
-      {/* Original workflow paths */}
-      <rect width="8" height="8" x="3" y="3" rx="2"/>
-      <path d="M7 11v4a2 2 0 0 0 2 2h4"/>
-      <rect width="8" height="8" x="13" y="13" rx="2"/>
+        {/* Original workflow paths */}
+        <rect width="8" height="8" x="3" y="3" rx="2"/>
+        <path d="M7 11v4a2 2 0 0 0 2 2h4"/>
+        <rect width="8" height="8" x="13" y="13" rx="2"/>
     </g>
   </svg>
 );
