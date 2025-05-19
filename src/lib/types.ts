@@ -4,6 +4,7 @@ export interface Warehouse {
   id: string;
   name: string;
   description?: string;
+  isArchived?: boolean; // Added for soft delete
 }
 
 export interface Item {
@@ -13,24 +14,25 @@ export interface Item {
   quantity: number;
   createdAt: string; // ISO string date
   updatedAt: string; // ISO string date
-  history: HistoryEntry[]; 
+  history: HistoryEntry[];
+  isArchived?: boolean; // Added for soft delete
 }
 
-export type HistoryEntryType = 
-  | 'CREATE_ITEM' 
-  | 'ADD_STOCK' 
-  | 'CONSUME_STOCK' 
-  | 'ADJUST_STOCK' 
-  | 'CREATE_WAREHOUSE' 
-  | 'UPDATE_WAREHOUSE' 
-  | 'DELETE_WAREHOUSE';
+export type HistoryEntryType =
+  | 'CREATE_ITEM'
+  | 'ADD_STOCK'
+  | 'CONSUME_STOCK'
+  | 'ADJUST_STOCK'
+  | 'CREATE_WAREHOUSE'
+  | 'UPDATE_WAREHOUSE'
+  | 'DELETE_WAREHOUSE'; // This type might be deprecated in favor of archiving
 
 export interface HistoryEntry {
-  id: string; 
+  id: string;
   type: HistoryEntryType;
-  change: number;        
-  quantityBefore: number; 
-  quantityAfter: number; 
+  change: number;
+  quantityBefore: number;
+  quantityAfter: number;
   comment?: string;
   timestamp: string; // ISO string date
 }
@@ -45,4 +47,3 @@ export interface ArchivedReport {
   printedAt: string; // ISO string date of printing
   historySnapshot: HistoryEntry[]; // A snapshot of the item's history at the time of printing
 }
-    

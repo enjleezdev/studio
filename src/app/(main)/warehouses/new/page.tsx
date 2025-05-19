@@ -23,7 +23,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import type { Warehouse } from '@/lib/types'; // Import Warehouse type
+import type { Warehouse } from '@/lib/types';
 
 const warehouseFormSchema = z.object({
   name: z.string().min(2, {
@@ -34,9 +34,9 @@ const warehouseFormSchema = z.object({
 
 type WarehouseFormValues = z.infer<typeof warehouseFormSchema>;
 
-// Explicitly type StoredWarehouse by extending WarehouseFormValues and adding id
 interface StoredWarehouse extends WarehouseFormValues {
   id: string;
+  isArchived?: boolean;
 }
 
 export default function NewWarehousePage() {
@@ -55,6 +55,7 @@ export default function NewWarehousePage() {
       id: Date.now().toString(),
       name: data.name,
       description: data.description,
+      isArchived: false, // Initialize as not archived
     };
 
     try {

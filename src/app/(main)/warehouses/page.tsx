@@ -22,24 +22,21 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import type { Warehouse } from '@/lib/types'; // Import Warehouse type
 
-// Explicitly type StoredWarehouse by extending Warehouse type from types.ts
-// or define it specifically if its structure for localStorage is different.
-// For now, assuming StoredWarehouse is compatible with the Warehouse type
-// or if it only needs id, name, description, then it's okay.
 interface StoredWarehouse extends Warehouse {}
-
 
 export default function WarehousesPage() {
   const [warehouses, setWarehouses] = React.useState<StoredWarehouse[]>([]);
-  const [selectedWarehouseForDelete, setSelectedWarehouseForDelete] = React.useState<StoredWarehouse | null>(null);
+  const [selectedWarehouseForArchive, setSelectedWarehouseForArchive] = React.useState<StoredWarehouse | null>(null);
   const { toast } = useToast();
 
-  React.useEffect(() => {
+  const loadWarehouses = React.useCallback(() => {
     try {
       const storedWarehousesString = localStorage.getItem('warehouses');
       if (storedWarehousesString) {
-        const storedWarehouses: StoredWarehouse[] = JSON.parse(storedWarehousesString);
-        setWarehouses(storedWarehouses);
+        const allStoredWarehouses: StoredWarehouse[] = JSON.parse(storedWarehousesString);
+        // Filter out archived warehouses
+        const activeWarehouses = allStoredWarehouses.filter(wh => !wh.isArchived);
+        setWarehouses(activeWarehouses);
       }
     } catch (error) {
       console.error("Failed to load warehouses from localStorage", error);
@@ -47,33 +44,51 @@ export default function WarehousesPage() {
     }
   }, [toast]);
 
-  const handleDeleteWarehouse = () => {
-    if (!selectedWarehouseForDelete) return;
+  React.useEffect(() => {
+    loadWarehouses();
+  }, [loadWarehouses]);
+
+  const handleArchiveWarehouse = () => {
+    if (!selectedWarehouseForArchive) return;
 
     try {
-      // Also delete items associated with this warehouse
-      const existingItemsString = localStorage.getItem('items');
-      if (existingItemsString) {
-        let existingItems = JSON.parse(existingItemsString);
-        existingItems = existingItems.filter((item: { warehouseId: string; }) => item.warehouseId !== selectedWarehouseForDelete.id);
-        localStorage.setItem('items', JSON.stringify(existingItems));
-      }
+      const existingWarehousesString = localStorage.getItem('warehouses');
+      let allWarehouses: StoredWarehouse[] = existingWarehousesString ? JSON.parse(existingWarehousesString) : [];
       
-      const updatedWarehouses = warehouses.filter(wh => wh.id !== selectedWarehouseForDelete.id);
-      localStorage.setItem('warehouses', JSON.stringify(updatedWarehouses));
-      setWarehouses(updatedWarehouses);
-      toast({ title: "Warehouse Deleted", description: `${selectedWarehouseForDelete.name} and its items have been deleted.` });
-      setSelectedWarehouseForDelete(null); 
+      const warehouseIndex = allWarehouses.findIndex(wh => wh.id === selectedWarehouseForArchive.id);
+      if (warehouseIndex > -1) {
+        allWarehouses[warehouseIndex] = { ...allWarehouses[warehouseIndex], isArchived: true };
+        localStorage.setItem('warehouses', JSON.stringify(allWarehouses));
+        
+        // Also mark items associated with this warehouse as archived
+        const existingItemsString = localStorage.getItem('items');
+        if (existingItemsString) {
+            let existingItems = JSON.parse(existingItemsString);
+            existingItems = existingItems.map((item: { warehouseId: string; isArchived?: boolean }) => {
+                if (item.warehouseId === selectedWarehouseForArchive.id) {
+                    return { ...item, isArchived: true };
+                }
+                return item;
+            });
+            localStorage.setItem('items', JSON.stringify(existingItems));
+        }
+
+        toast({ title: "Warehouse Archived", description: `${selectedWarehouseForArchive.name} and its items have been moved to the archive.` });
+        setSelectedWarehouseForArchive(null);
+        loadWarehouses(); // Reload to update the list
+      } else {
+        toast({ title: "Error", description: "Warehouse not found for archiving.", variant: "destructive" });
+      }
     } catch (error) {
-      console.error("Failed to delete warehouse from localStorage", error);
-      toast({ title: "Error", description: "Failed to delete warehouse.", variant: "destructive" });
+      console.error("Failed to archive warehouse in localStorage", error);
+      toast({ title: "Error", description: "Failed to archive warehouse.", variant: "destructive" });
     }
   };
 
   return (
-    <AlertDialog open={!!selectedWarehouseForDelete} onOpenChange={(isOpen) => {
+    <AlertDialog open={!!selectedWarehouseForArchive} onOpenChange={(isOpen) => {
       if (!isOpen) {
-        setSelectedWarehouseForDelete(null);
+        setSelectedWarehouseForArchive(null);
       }
     }}>
       <PageHeader
@@ -91,8 +106,8 @@ export default function WarehousesPage() {
       {warehouses.length === 0 ? (
         <EmptyState
           IconComponent={Home}
-          title="No Warehouses Yet"
-          description="Get started by adding your first warehouse."
+          title="No Active Warehouses Yet"
+          description="Get started by adding your first warehouse or check the archive."
           action={{
             label: "Add Warehouse",
             href: "/warehouses/new",
@@ -113,19 +128,13 @@ export default function WarehousesPage() {
                     <CardDescription className="mt-1 text-sm text-muted-foreground line-clamp-2">{warehouse.description}</CardDescription>
                   )}
                 </CardHeader>
-                {/* Item count can be added here later by fetching items for this warehouse */}
-                {/* <CardContent className="pt-2">
-                  <p className="text-sm text-muted-foreground">
-                    Items: 0 
-                  </p>
-                </CardContent> */}
               </Link>
               <div className="flex items-center justify-end gap-2 p-4 pt-0 border-t mt-auto">
-                <Button variant="ghost" size="icon" onClick={() => alert(`Edit ${warehouse.name} - coming soon!`)} aria-label={`Edit ${warehouse.name}`}>
+                <Button variant="ghost" size="icon" onClick={() => alert(`Editing ${warehouse.name} - coming soon!`)} aria-label={`Edit ${warehouse.name}`}>
                   <Edit className="h-4 w-4" />
                 </Button>
                 <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setSelectedWarehouseForDelete(warehouse)} aria-label={`Delete ${warehouse.name}`}>
+                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setSelectedWarehouseForArchive(warehouse)} aria-label={`Archive ${warehouse.name}`}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </AlertDialogTrigger>
@@ -135,18 +144,18 @@ export default function WarehousesPage() {
         </div>
       )}
       
-      {selectedWarehouseForDelete && (
+      {selectedWarehouseForArchive && (
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure you want to delete &quot;{selectedWarehouseForDelete.name}&quot;?</AlertDialogTitle>
+            <AlertDialogTitle>Are you sure you want to archive "{selectedWarehouseForArchive.name}"?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the warehouse and all associated items.
+              This action will move the warehouse and all its items to the archive. You can restore them later.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setSelectedWarehouseForDelete(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteWarehouse} className="bg-destructive hover:bg-destructive/90">
-              Delete
+            <AlertDialogCancel onClick={() => setSelectedWarehouseForArchive(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleArchiveWarehouse} className="bg-destructive hover:bg-destructive/90">
+              Archive
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
