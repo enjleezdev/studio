@@ -11,7 +11,6 @@ import { EmptyState } from "@/components/EmptyState";
 import { useToast } from "@/hooks/use-toast";
 import type { Warehouse, Item, HistoryEntry, ArchivedReport } from '@/lib/types';
 import { format } from 'date-fns';
-// import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"; // No longer using ShadCN Table directly for these
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
@@ -186,7 +185,7 @@ export default function ReportsPage() {
           {getCurrentReportTitle()}
         </h3>
         <ScrollArea className="h-[400px] w-full rounded-md border">
-          <table className="text-xs border-collapse"> {/* REMOVED min-w-full */}
+          <table className="text-xs border-collapse min-w-full">
             <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
               <tr>
                 <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Date</th>
@@ -203,8 +202,8 @@ export default function ReportsPage() {
               {filteredTransactions.map((entry) => (
                 <tr key={entry.id + entry.timestamp} className="border-b border-border/50 last:border-b-0 hover:bg-muted/10 dark:hover:bg-muted/5">
                   <td className="py-3 px-4 text-xs whitespace-nowrap">{format(new Date(entry.timestamp), 'P p')}</td>
-                  <td className="py-3 px-4 font-medium whitespace-nowrap break-words">{entry.itemName}</td>
-                  <td className="py-3 px-4 text-sm text-muted-foreground whitespace-nowrap break-words">{entry.warehouseName}</td>
+                  <td className="py-3 px-4 font-medium break-words">{entry.itemName}</td>
+                  <td className="py-3 px-4 text-sm text-muted-foreground break-words">{entry.warehouseName}</td>
                   <td className="py-3 px-4 whitespace-nowrap">
                     <span className={`px-2 py-0.5 text-xs rounded-full ${
                         entry.type === 'CREATE_ITEM' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
@@ -292,7 +291,7 @@ export default function ReportsPage() {
       const warehouseForPrinting: Warehouse = {
         id: report.warehouseId,
         name: report.warehouseName,
-        description: report.warehouseDescription || '', // Added description
+        description: report.warehouseDescription || '', 
         createdAt: new Date().toISOString(), 
         updatedAt: new Date().toISOString(), 
         isArchived: true,
@@ -336,12 +335,10 @@ export default function ReportsPage() {
         description="View transaction history and stock levels."
       />
       <div className="space-y-6">
-        <Card>
+        <Card className="overflow-hidden"> {/* Added overflow-hidden to the Card */}
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle>Transportations</CardTitle>
-              {/* <CardDescription>Item Transaction History (Bank Statement Style)</CardDescription> */}
-              {/* <CardDescription>Select a warehouse and an item to view its detailed transaction log.</CardDescription> */}
             </div>
             <Button variant="outline" onClick={handlePrintVisibleTransactions} disabled={filteredTransactions.length === 0}>
               <Printer className="mr-2 h-4 w-4" />
@@ -460,7 +457,7 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="overflow-hidden"> {/* Added overflow-hidden to the Card */}
           <CardHeader>
             <CardTitle>Archived Printed Reports</CardTitle>
             <CardDescription>View and re-print previously generated reports.</CardDescription>
@@ -474,8 +471,8 @@ export default function ReportsPage() {
               />
             ) : (
               <ScrollArea className="h-[400px] w-full rounded-md border">
-                <table className="text-xs border-collapse"> {/* REMOVED min-w-full */}
-                  <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
+                {/* Ensure no whitespace between table and thead for hydration */}
+                <table className="text-xs border-collapse min-w-full"><thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
                     <tr>
                       <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Report For</th>
                       <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words text-xs">Type</th>
@@ -513,3 +510,5 @@ export default function ReportsPage() {
     </>
   );
 }
+
+    
