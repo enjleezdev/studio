@@ -11,14 +11,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { useToast } from "@/hooks/use-toast";
 import type { Warehouse, Item, HistoryEntry, ArchivedReport } from '@/lib/types';
 import { format } from 'date-fns';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+// import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"; // No longer using ShadCN Table directly for these
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
@@ -193,26 +186,26 @@ export default function ReportsPage() {
           {getCurrentReportTitle()}
         </h3>
         <ScrollArea className="h-[400px] w-full rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="whitespace-nowrap">Date</TableHead>
-                <TableHead className="whitespace-nowrap">Item Name</TableHead>
-                <TableHead className="whitespace-nowrap">Warehouse</TableHead>
-                <TableHead className="whitespace-nowrap">Type</TableHead>
-                <TableHead className="text-right whitespace-nowrap">Change</TableHead>
-                <TableHead className="text-right whitespace-nowrap">Before</TableHead>
-                <TableHead className="text-right whitespace-nowrap">After</TableHead>
-                <TableHead className="whitespace-nowrap">Comment</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <table className="text-xs border-collapse"> {/* REMOVED min-w-full */}
+            <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
+              <tr>
+                <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Date</th>
+                <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Item Name</th>
+                <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Warehouse</th>
+                <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Type</th>
+                <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">Change</th>
+                <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">Before</th>
+                <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">After</th>
+                <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-normal break-words">Comment</th>
+              </tr>
+            </thead>
+            <tbody>
               {filteredTransactions.map((entry) => (
-                <TableRow key={entry.id + entry.timestamp}>
-                  <TableCell className="text-xs whitespace-nowrap">{format(new Date(entry.timestamp), 'P p')}</TableCell>
-                  <TableCell className="font-medium whitespace-nowrap break-words">{entry.itemName}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap break-words">{entry.warehouseName}</TableCell>
-                  <TableCell className="whitespace-nowrap">
+                <tr key={entry.id + entry.timestamp} className="border-b border-border/50 last:border-b-0 hover:bg-muted/10 dark:hover:bg-muted/5">
+                  <td className="py-3 px-4 text-xs whitespace-nowrap">{format(new Date(entry.timestamp), 'P p')}</td>
+                  <td className="py-3 px-4 font-medium whitespace-nowrap break-words">{entry.itemName}</td>
+                  <td className="py-3 px-4 text-sm text-muted-foreground whitespace-nowrap break-words">{entry.warehouseName}</td>
+                  <td className="py-3 px-4 whitespace-nowrap">
                     <span className={`px-2 py-0.5 text-xs rounded-full ${
                         entry.type === 'CREATE_ITEM' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
                         entry.type === 'ADD_STOCK' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
@@ -222,17 +215,17 @@ export default function ReportsPage() {
                     }`}>
                         {formatHistoryType(entry.type)}
                     </span>
-                  </TableCell>
-                  <TableCell className={`text-right font-medium whitespace-nowrap ${entry.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                  </td>
+                  <td className={`py-3 px-4 text-right font-medium whitespace-nowrap ${entry.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                     {entry.change > 0 ? `+${entry.change}` : entry.change}
-                  </TableCell>
-                  <TableCell className="text-right whitespace-nowrap">{entry.quantityBefore}</TableCell>
-                  <TableCell className="text-right font-semibold whitespace-nowrap">{entry.quantityAfter}</TableCell>
-                  <TableCell className="text-xs whitespace-normal break-words">{entry.comment}</TableCell>
-                </TableRow>
+                  </td>
+                  <td className="py-3 px-4 text-right whitespace-nowrap">{entry.quantityBefore}</td>
+                  <td className="py-3 px-4 text-right font-semibold whitespace-nowrap">{entry.quantityAfter}</td>
+                  <td className="py-3 px-4 text-xs whitespace-normal break-words">{entry.comment}</td>
+                </tr>
               ))}
-            </TableBody>
-          </Table>
+            </tbody>
+          </table>
         </ScrollArea>
       </div>
     );
@@ -299,6 +292,7 @@ export default function ReportsPage() {
       const warehouseForPrinting: Warehouse = {
         id: report.warehouseId,
         name: report.warehouseName,
+        description: report.warehouseDescription || '', // Added description
         createdAt: new Date().toISOString(), 
         updatedAt: new Date().toISOString(), 
         isArchived: true,
@@ -346,6 +340,8 @@ export default function ReportsPage() {
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle>Transportations</CardTitle>
+              {/* <CardDescription>Item Transaction History (Bank Statement Style)</CardDescription> */}
+              {/* <CardDescription>Select a warehouse and an item to view its detailed transaction log.</CardDescription> */}
             </div>
             <Button variant="outline" onClick={handlePrintVisibleTransactions} disabled={filteredTransactions.length === 0}>
               <Printer className="mr-2 h-4 w-4" />
@@ -478,37 +474,37 @@ export default function ReportsPage() {
               />
             ) : (
               <ScrollArea className="h-[400px] w-full rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="break-words">Report For</TableHead>
-                      <TableHead className="break-words text-xs">Type</TableHead>
-                      <TableHead className="whitespace-nowrap">Printed By</TableHead>
-                      <TableHead className="whitespace-nowrap">Printed At</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                <table className="text-xs border-collapse"> {/* REMOVED min-w-full */}
+                  <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
+                    <tr>
+                      <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Report For</th>
+                      <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words text-xs">Type</th>
+                      <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Printed By</th>
+                      <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Printed At</th>
+                      <th className="py-3 px-4 text-right font-medium text-muted-foreground">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
                     {archivedReports.sort((a,b) => new Date(b.printedAt).getTime() - new Date(a.printedAt).getTime()).map((report) => (
-                      <TableRow key={report.id}>
-                        <TableCell className="font-medium break-words">
+                      <tr key={report.id} className="border-b border-border/50 last:border-b-0 hover:bg-muted/10 dark:hover:bg-muted/5">
+                        <td className="py-3 px-4 font-medium break-words">
                           {report.reportType === 'ITEM' ? report.itemName : report.warehouseName}
                           {report.reportType === 'ITEM' && <span className="text-xs text-muted-foreground block"> (in {report.warehouseName})</span>}
-                        </TableCell>
-                        <TableCell className="break-words text-xs">
+                        </td>
+                        <td className="py-3 px-4 break-words text-xs">
                           {report.reportType === 'ITEM' ? 'Item Details' : report.reportType === 'WAREHOUSE' ? 'Warehouse Summary' : 'Transactions'}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">{report.printedBy}</TableCell>
-                        <TableCell className="text-xs whitespace-nowrap">{format(new Date(report.printedAt), 'P p')}</TableCell>
-                        <TableCell className="text-right"> 
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap">{report.printedBy}</td>
+                        <td className="py-3 px-4 text-xs whitespace-nowrap">{format(new Date(report.printedAt), 'P p')}</td>
+                        <td className="py-3 px-4 text-right"> 
                           <Button variant="outline" size="sm" onClick={() => handlePrintArchivedReport(report)}>
                             <Printer className="mr-2 h-3 w-3" /> Re-print
                           </Button>
-                        </TableCell>
-                      </TableRow>
+                        </td>
+                      </tr>
                     ))}
-                  </TableBody>
-                </Table>
+                  </tbody>
+                </table>
               </ScrollArea>
             )}
           </CardContent>

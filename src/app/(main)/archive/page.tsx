@@ -158,17 +158,17 @@ export default function ArchivePage() {
                 <table className="text-xs border-collapse min-w-full">
                   <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
                     <tr>
-                      <th className="py-2 px-3 text-left font-medium text-muted-foreground break-words">Name</th>
-                      <th className="py-2 px-3 text-left font-medium text-muted-foreground break-words">Description</th>
-                      <th className="py-2 px-3 text-right font-medium text-muted-foreground whitespace-nowrap">Actions</th>
+                      <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Name</th>
+                      <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Description</th>
+                      <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {archivedWarehouses.map((wh) => (
                       <tr key={wh.id} className="border-b border-border/50 last:border-b-0 hover:bg-muted/10 dark:hover:bg-muted/5">
-                        <td className="py-1.5 px-3 font-medium break-words">{wh.name}</td>
-                        <td className="py-1.5 px-3 text-sm text-muted-foreground break-words">{wh.description || 'N/A'}</td>
-                        <td className="py-1.5 px-3 text-right whitespace-nowrap">
+                        <td className="py-3 px-4 font-medium break-words">{wh.name}</td>
+                        <td className="py-3 px-4 text-sm text-muted-foreground break-words">{wh.description || 'N/A'}</td>
+                        <td className="py-3 px-4 text-right whitespace-nowrap">
                           <Button variant="outline" size="sm" onClick={() => handleRestoreWarehouse(wh.id)}>
                             <RotateCcw className="mr-2 h-3 w-3" /> Restore
                           </Button>
@@ -199,23 +199,23 @@ export default function ArchivePage() {
                 <table className="text-xs border-collapse min-w-full">
                   <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
                     <tr>
-                      <th className="py-2 px-3 text-left font-medium text-muted-foreground break-words">Name</th>
-                      <th className="py-2 px-3 text-left font-medium text-muted-foreground break-words">Warehouse</th>
-                      <th className="py-2 px-3 text-right font-medium text-muted-foreground whitespace-nowrap">Quantity</th>
-                      <th className="py-2 px-3 text-left font-medium text-muted-foreground whitespace-nowrap">Archived On</th>
-                      <th className="py-2 px-3 text-right font-medium text-muted-foreground whitespace-nowrap">Actions</th>
+                      <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Name</th>
+                      <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Warehouse</th>
+                      <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">Quantity</th>
+                      <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Archived On</th>
+                      <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {archivedItems.map((item) => (
                       <tr key={item.id} className="border-b border-border/50 last:border-b-0 hover:bg-muted/10 dark:hover:bg-muted/5">
-                        <td className="py-1.5 px-3 font-medium break-words">{item.name}</td>
-                        <td className="py-1.5 px-3 break-words">{getWarehouseName(item.warehouseId)}</td>
-                        <td className="py-1.5 px-3 text-right whitespace-nowrap">{item.quantity}</td>
-                        <td className="py-1.5 px-3 text-xs whitespace-nowrap">
+                        <td className="py-3 px-4 font-medium break-words">{item.name}</td>
+                        <td className="py-3 px-4 break-words">{getWarehouseName(item.warehouseId)}</td>
+                        <td className="py-3 px-4 text-right whitespace-nowrap">{item.quantity}</td>
+                        <td className="py-3 px-4 text-xs whitespace-nowrap">
                           {item.updatedAt ? format(new Date(item.updatedAt), 'P p') : 'N/A'}
                         </td>
-                        <td className="py-1.5 px-3 text-right whitespace-nowrap">
+                        <td className="py-3 px-4 text-right whitespace-nowrap">
                           <Button variant="outline" size="sm" onClick={() => handleRestoreItem(item.id)}>
                             <RotateCcw className="mr-2 h-3 w-3" /> Restore
                           </Button>
