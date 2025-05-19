@@ -57,11 +57,11 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r">
       <SidebarHeader className={cn(
-        "flex items-center h-14", 
-        state === 'collapsed' ? 'justify-center' : 'px-4 justify-start' 
+        "flex items-center h-14",
+        state === 'collapsed' ? 'justify-center' : 'px-4 justify-start'
       )}>
         <MiniAppLogo />
-        {state !== 'collapsed' && <span className="ml-2 text-md font-semibold text-primary">FP</span>}
+        {/* Removed the conditional "FP" span */}
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
@@ -154,7 +154,7 @@ export function AppSidebar() {
               state === "collapsed" && "opacity-0 hidden"
             )}>
               <span className="text-sm font-medium text-sidebar-foreground">Admin User</span>
-              <span className="text-xs text-sidebar-foreground/70">admin@flowgistic.com</span>
+              <span className="text-sm text-sidebar-foreground/70">admin@flowgistic.com</span>
             </div>
           </div>
       </SidebarFooter>
