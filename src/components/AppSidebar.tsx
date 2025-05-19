@@ -25,14 +25,7 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
-// Miniature App Logo for Sidebar
-const MiniAppLogo = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-primary shrink-0">
-    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-    <path d="M2 17l10 5 10-5"/>
-    <path d="M2 12l10 5 10-5"/>
-  </svg>
-);
+// MiniAppLogo definition removed as it's no longer used
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -60,14 +53,7 @@ export function AppSidebar() {
         "flex items-center h-14", // Base flex styles
         state === 'collapsed' ? 'justify-center px-2' : 'px-4 justify-start gap-2' // Conditional alignment and gap
       )}>
-        <MiniAppLogo />
-        {state !== 'collapsed' && ( // Render text only if sidebar is not collapsed
-          <span className={cn(
-            "font-semibold text-primary text-base whitespace-nowrap overflow-hidden text-ellipsis"
-          )}>
-            Flowgistic Pilot
-          </span>
-        )}
+        {/* Logo and brand name removed from sidebar header as per request */}
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
