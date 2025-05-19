@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Warehouse, Item } from '@/lib/types';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
-// Removed ScrollArea import as Table component handles its own scrolling wrapper
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Table,
   TableBody,
@@ -162,28 +162,30 @@ export default function ArchivePage() {
                 description="Warehouses you archive will appear here."
               />
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {archivedWarehouses.map((wh) => (
-                    <TableRow key={wh.id}>
-                      <TableCell className="font-medium break-words">{wh.name}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground break-words">{wh.description || 'N/A'}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="outline" size="sm" onClick={() => handleRestoreWarehouse(wh.id)}>
-                          <RotateCcw className="mr-2 h-3 w-3" /> Restore
-                        </Button>
-                      </TableCell>
+              <ScrollArea className="h-[400px] w-full rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="break-words">Name</TableHead>
+                      <TableHead className="break-words">Description</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {archivedWarehouses.map((wh) => (
+                      <TableRow key={wh.id}>
+                        <TableCell className="font-medium break-words">{wh.name}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground break-words">{wh.description || 'N/A'}</TableCell>
+                        <TableCell className="text-right whitespace-nowrap">
+                          <Button variant="outline" size="sm" onClick={() => handleRestoreWarehouse(wh.id)}>
+                            <RotateCcw className="mr-2 h-3 w-3" /> Restore
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
             )}
           </CardContent>
         </Card>
@@ -201,34 +203,36 @@ export default function ArchivePage() {
                 description="Items you archive will appear here."
               />
             ) : (
-              <Table> 
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Warehouse</TableHead>
-                    <TableHead className="text-right">Quantity</TableHead>
-                    <TableHead>Archived On</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {archivedItems.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium break-words">{item.name}</TableCell>
-                      <TableCell className="break-words">{getWarehouseName(item.warehouseId)}</TableCell>
-                      <TableCell className="text-right">{item.quantity}</TableCell>
-                      <TableCell className="text-xs">
-                        {item.updatedAt ? format(new Date(item.updatedAt), 'P p') : 'N/A'}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="outline" size="sm" onClick={() => handleRestoreItem(item.id)}>
-                          <RotateCcw className="mr-2 h-3 w-3" /> Restore
-                        </Button>
-                      </TableCell>
+              <ScrollArea className="h-[400px] w-full rounded-md border">
+                <Table> 
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="break-words">Name</TableHead>
+                      <TableHead className="break-words">Warehouse</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">Quantity</TableHead>
+                      <TableHead className="whitespace-nowrap">Archived On</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {archivedItems.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-medium break-words">{item.name}</TableCell>
+                        <TableCell className="break-words">{getWarehouseName(item.warehouseId)}</TableCell>
+                        <TableCell className="text-right whitespace-nowrap">{item.quantity}</TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">
+                          {item.updatedAt ? format(new Date(item.updatedAt), 'P p') : 'N/A'}
+                        </TableCell>
+                        <TableCell className="text-right whitespace-nowrap">
+                          <Button variant="outline" size="sm" onClick={() => handleRestoreItem(item.id)}>
+                            <RotateCcw className="mr-2 h-3 w-3" /> Restore
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
             )}
           </CardContent>
         </Card>

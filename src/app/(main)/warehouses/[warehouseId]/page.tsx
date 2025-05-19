@@ -78,7 +78,6 @@ const updateWarehouseTimestamp = (currentWarehouseId: string) => {
     }
   } catch (error) {
     console.error("Failed to update warehouse timestamp in localStorage", error);
-    // Optionally show a toast to the user if this fails, though it's a background task
   }
 };
 
@@ -492,7 +491,7 @@ export default function WarehouseDetailPage() {
                        <TableRow className="bg-muted/20 hover:bg-muted/30">
                          <TableCell className="p-0 overflow-hidden">
                            <div className="h-full w-full overflow-auto"> 
-                             <div className="p-4 space-y-3">
+                             <div className="p-4 space-y-3"> 
                                 <h4 className="text-md font-semibold text-foreground text-left">
                                 Transaction History: <span className="font-bold">{item.name}</span>
                                 </h4>
@@ -505,7 +504,7 @@ export default function WarehouseDetailPage() {
                                         <th className="py-2 px-3 text-center font-medium text-muted-foreground whitespace-nowrap">Change</th>
                                         <th className="py-2 px-3 text-center font-medium text-muted-foreground whitespace-nowrap">Before</th>
                                         <th className="py-2 px-3 text-center font-medium text-muted-foreground whitespace-nowrap">After</th>
-                                        <th className="py-2 px-3 text-left font-medium text-muted-foreground min-w-[150px] whitespace-normal">Comment</th>
+                                        <th className="py-2 px-3 text-left font-medium text-muted-foreground min-w-[150px] whitespace-normal break-words">Comment</th>
                                         </tr>
                                     </thead>
                                     <tbody>
