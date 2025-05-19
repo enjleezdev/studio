@@ -98,7 +98,7 @@ export default function NewWarehousePage() {
                   <FormItem>
                     <FormLabel>Warehouse Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Main Storage Facility" {...field} />
+                      <Input placeholder="Main Storage Facility" {...field} />
                     </FormControl>
                     <FormDescription>
                       Enter a clear and concise name for the warehouse.
@@ -115,7 +115,7 @@ export default function NewWarehousePage() {
                     <FormLabel>Description (Optional)</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="e.g., Primary location for storing electronics and components."
+                        placeholder="Primary location for storing electronics and components."
                         className="resize-none"
                         {...field}
                       />
