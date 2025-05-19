@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Warehouse, Package, ListChecks, Bot, Settings, Users, ChevronDown, ChevronUp, LogOut, FileText, LayoutDashboard, History, Archive as ArchiveIcon } from "lucide-react";
+import { Home, Warehouse, Package, ListChecks, Bot, Settings, Users, ChevronDown, ChevronUp, LogOut, FileText, Archive as ArchiveIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
@@ -18,7 +18,7 @@ import {
   SidebarMenuSubButton,
   SidebarGroup,
   SidebarGroupLabel,
-  SidebarGroupContent, // Ensured this is imported
+  SidebarGroupContent, 
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
@@ -57,16 +57,10 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r">
       <SidebarHeader className={cn(
-        "flex items-center gap-2 h-14",
+        "flex items-center h-14",
         state === 'collapsed' ? 'justify-center px-2' : 'px-4 justify-start'
       )}>
         <MiniAppLogo />
-        <span className={cn(
-          "font-semibold text-primary text-base",
-          state === 'collapsed' && "opacity-0 hidden"
-        )}>
-          Flowgistic Pilot
-        </span>
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>

@@ -21,6 +21,43 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import type { Warehouse, Item } from '@/lib/types';
+import { cn } from "@/lib/utils";
+
+// App Logo component
+const AppLogo = ({ className }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={cn("h-12 w-12 text-primary", className)}
+  >
+    <path d="M12 2L2 7l10 5 10-5-10-5z" />
+    <path d="M2 17l10 5 10-5" />
+    <path d="M2 12l10 5 10-5" />
+  </svg>
+);
+
+// Combined Logo and Brand for the main page
+const AppLogoAndBrand = () => {
+  return (
+    <div className="flex flex-col items-center justify-center py-8 text-center">
+      <AppLogo />
+      <h1 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+        Flowgistic Pilot
+      </h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        powered by{' '}
+        <Link href="https://www.enjleez.tech/" target="_blank" rel="noopener noreferrer" className="font-medium text-red-500 hover:text-red-600 underline">
+          ENJLEEZ TECH
+        </Link>
+      </p>
+    </div>
+  );
+};
 
 
 export default function WarehousesPage() {
@@ -58,6 +95,7 @@ export default function WarehousesPage() {
         allWarehouses[warehouseIndex] = { ...allWarehouses[warehouseIndex], isArchived: true };
         localStorage.setItem('warehouses', JSON.stringify(allWarehouses));
         
+        // Also archive all items within this warehouse
         const existingItemsString = localStorage.getItem('items');
         if (existingItemsString) {
             let existingItems: Item[] = JSON.parse(existingItemsString);
@@ -88,6 +126,7 @@ export default function WarehousesPage() {
         setSelectedWarehouseForArchive(null);
       }
     }}>
+      <AppLogoAndBrand />
       <PageHeader
         title="Warehouses"
         description="Manage all your storage locations from here."
@@ -144,7 +183,7 @@ export default function WarehousesPage() {
       {selectedWarehouseForArchive && (
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Archive "{selectedWarehouseForArchive.name}"?</AlertDialogTitle>
+            <AlertDialogTitle>Archive Warehouse "{selectedWarehouseForArchive.name}"?</AlertDialogTitle>
             <AlertDialogDescription>
               This action will move the warehouse and all its items to the archive. You can restore them later.
             </AlertDialogDescription>
