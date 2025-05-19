@@ -5,7 +5,7 @@ import * as React from 'react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArchiveRestore, Package, Warehouse as WarehouseIcon, RotateCcw } from 'lucide-react';
+import { Package, Warehouse as WarehouseIcon, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Warehouse, Item } from '@/lib/types';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -24,7 +24,7 @@ import { format } from 'date-fns';
 export default function ArchivePage() {
   const { toast } = useToast();
   const [archivedWarehouses, setArchivedWarehouses] = React.useState<Warehouse[]>([]);
-  const [allWarehouses, setAllWarehouses] = React.useState<Warehouse[]>([]); // To find warehouse names
+  const [allWarehouses, setAllWarehouses] = React.useState<Warehouse[]>([]); 
   const [archivedItems, setArchivedItems] = React.useState<Item[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
 
@@ -57,13 +57,37 @@ export default function ArchivePage() {
     return warehouse ? warehouse.name : "Unknown Warehouse";
   };
 
-  // Placeholder for future restore functionality
   const handleRestoreWarehouse = (warehouseId: string) => {
+    // Future implementation:
+    // Find warehouse, set isArchived to false
+    // Optionally, find all items belonging to this warehouse that were archived *with the warehouse*
+    // and set their isArchived to false as well, unless they were individually archived before.
     toast({ title: "Info", description: `Restore warehouse ${warehouseId} - coming soon!`});
   };
 
   const handleRestoreItem = (itemId: string) => {
-     toast({ title: "Info", description: `Restore item ${itemId} - coming soon!`});
+    try {
+      const existingItemsString = localStorage.getItem('items');
+      let allItems: Item[] = existingItemsString ? JSON.parse(existingItemsString) : [];
+      
+      const itemIndex = allItems.findIndex(i => i.id === itemId);
+      if (itemIndex > -1) {
+        allItems[itemIndex] = { 
+          ...allItems[itemIndex], 
+          isArchived: false, 
+          updatedAt: new Date().toISOString() 
+        };
+        localStorage.setItem('items', JSON.stringify(allItems));
+        
+        toast({ title: "Item Restored", description: `${allItems[itemIndex].name} has been restored.` });
+        loadArchivedData(); // Refresh the archived items list
+      } else {
+        toast({ title: "Error", description: "Item not found for restoring.", variant: "destructive" });
+      }
+    } catch (error) {
+      console.error("Failed to restore item from localStorage", error);
+      toast({ title: "Error", description: "Failed to restore item.", variant: "destructive" });
+    }
   };
 
 
@@ -151,7 +175,7 @@ export default function ArchivePage() {
                         <TableCell className="text-right">{item.quantity}</TableCell>
                         <TableCell className="text-xs">{item.updatedAt ? format(new Date(item.updatedAt), 'PPpp') : 'N/A'}</TableCell>
                         <TableCell className="text-right">
-                          <Button variant="outline" size="sm" onClick={() => handleRestoreItem(item.id)} disabled>
+                          <Button variant="outline" size="sm" onClick={() => handleRestoreItem(item.id)}>
                             <RotateCcw className="mr-2 h-3 w-3" /> Restore
                           </Button>
                         </TableCell>
