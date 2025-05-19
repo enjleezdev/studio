@@ -117,13 +117,14 @@ export default function ArchivePage() {
         if (parentWarehouseId) {
           updateWarehouseTimestamp(parentWarehouseId);
         }
-
+        
         setArchivedItems(prevItems => prevItems.filter(i => i.id !== itemId));
         // loadArchivedData(); // Might not be needed if setArchivedItems is sufficient for UI update
       } else {
         toast({ title: "Error", description: "Item not found for restoring.", variant: "destructive" });
       }
-    } catch (error) {
+    } catch (error)
+{
       console.error("Failed to restore item from localStorage", error);
       toast({ title: "Error", description: "Failed to restore item.", variant: "destructive" });
     }
@@ -141,7 +142,7 @@ export default function ArchivePage() {
         description="View and manage archived warehouses and items."
       />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="overflow-hidden"> {/* Added overflow-hidden */}
+        <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle>Archived Warehouses</CardTitle>
             <CardDescription>Warehouses that have been moved to the archive.</CardDescription>
@@ -155,7 +156,7 @@ export default function ArchivePage() {
               />
             ) : (
               <ScrollArea className="h-[400px] w-full rounded-md border">
-                <table className="text-xs border-collapse min-w-full">
+                <table className="text-xs border-collapse"> {/* REMOVED min-w-full */}
                   <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
                     <tr>
                       <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Name</th>
@@ -182,7 +183,7 @@ export default function ArchivePage() {
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden"> {/* Added overflow-hidden */}
+        <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle>Archived Items</CardTitle>
             <CardDescription>Items that have been moved to the archive.</CardDescription>
@@ -196,7 +197,7 @@ export default function ArchivePage() {
               />
             ) : (
               <ScrollArea className="h-[400px] w-full rounded-md border">
-                <table className="text-xs border-collapse min-w-full">
+                <table className="text-xs border-collapse"> {/* REMOVED min-w-full */}
                   <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
                     <tr>
                       <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Name</th>
@@ -232,5 +233,3 @@ export default function ArchivePage() {
     </>
   );
 }
-
-    
