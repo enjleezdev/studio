@@ -1,8 +1,9 @@
+
 export interface Warehouse {
   id: string;
   name: string;
   description?: string;
-  createdAt: string; // ISO string date
+  // createdAt: string; // ISO string date - Already exists from previous warehouse implementation
 }
 
 export interface Item {
@@ -29,3 +30,5 @@ export interface HistoryEntry {
   type: HistoryEntryType;
   timestamp: string; // ISO string date
 }
+
+    
