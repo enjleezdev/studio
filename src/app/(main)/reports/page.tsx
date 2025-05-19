@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { useToast } from "@/hooks/use-toast";
 import type { Warehouse, Item, HistoryEntry, ArchivedReport } from '@/lib/types';
 import { format } from 'date-fns';
+import { arSA } from 'date-fns/locale';
 import {
   Table,
   TableBody,
@@ -29,7 +30,7 @@ import {
 } from "@/components/ui/select";
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { PrintableItemReport } from '@/components/PrintableItemReport';
-import { PrintableWarehouseReport } from '@/components/PrintableWarehouseReport'; // Import new component
+import { PrintableWarehouseReport } from '@/components/PrintableWarehouseReport'; 
 
 const formatHistoryType = (type: HistoryEntry['type']): string => {
   switch (type) {
@@ -96,26 +97,31 @@ export default function ReportsPage() {
 
     return (
       <div className="mt-6">
-        <h3 className="text-lg font-semibold mb-2">
+        <h3 className="text-lg font-semibold mb-2 text-right">
           {title} {currentStock !== undefined ? `(Current Stock: ${currentStock})` : ''}
         </h3>
         <ScrollArea className="h-[400px] w-full rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="whitespace-nowrap">Date</TableHead>
-                <TableHead className="whitespace-nowrap">Type</TableHead>
-                <TableHead className="text-right whitespace-nowrap">Change</TableHead>
-                <TableHead className="text-right whitespace-nowrap">Before</TableHead>
+                <TableHead className="whitespace-nowrap text-right">Comment</TableHead>
                 <TableHead className="text-right whitespace-nowrap">After</TableHead>
-                <TableHead className="whitespace-normal break-words">Comment</TableHead>
+                <TableHead className="text-right whitespace-nowrap">Before</TableHead>
+                <TableHead className="text-right whitespace-nowrap">Change</TableHead>
+                <TableHead className="whitespace-nowrap text-right">Type</TableHead>
+                <TableHead className="whitespace-nowrap text-right">Date</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {sortedHistory.map((entry) => (
                 <TableRow key={entry.id}>
-                  <TableCell className="text-xs whitespace-nowrap">{format(new Date(entry.timestamp), 'P p')}</TableCell>
-                  <TableCell className="whitespace-nowrap">
+                  <TableCell className="text-xs whitespace-normal break-words text-right">{entry.comment}</TableCell>
+                  <TableCell className="text-right font-semibold whitespace-nowrap">{entry.quantityAfter}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{entry.quantityBefore}</TableCell>
+                  <TableCell className={`text-right font-medium whitespace-nowrap ${entry.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {entry.change > 0 ? `+${entry.change}` : entry.change}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-right">
                     <span className={`px-2 py-0.5 text-xs rounded-full ${
                         entry.type === 'CREATE_ITEM' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
                         entry.type === 'ADD_STOCK' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
@@ -126,12 +132,7 @@ export default function ReportsPage() {
                         {formatHistoryType(entry.type)}
                     </span>
                   </TableCell>
-                  <TableCell className={`text-right font-medium whitespace-nowrap ${entry.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                    {entry.change > 0 ? `+${entry.change}` : entry.change}
-                  </TableCell>
-                  <TableCell className="text-right whitespace-nowrap">{entry.quantityBefore}</TableCell>
-                  <TableCell className="text-right font-semibold whitespace-nowrap">{entry.quantityAfter}</TableCell>
-                  <TableCell className="text-xs whitespace-normal break-words">{entry.comment}</TableCell>
+                  <TableCell className="text-xs whitespace-nowrap text-right">{format(new Date(entry.timestamp), 'P p', { locale: arSA })}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -152,11 +153,11 @@ export default function ReportsPage() {
           id: report.itemId,
           name: report.itemName,
           warehouseId: report.warehouseId,
-          quantity: report.historySnapshot.length > 0 ? report.historySnapshot[0].quantityAfter : 0,
+          quantity: report.historySnapshot.length > 0 ? report.historySnapshot[0].quantityAfter : 0, // Attempt to get a quantity
           createdAt: report.historySnapshot.length > 0 ? report.historySnapshot[report.historySnapshot.length -1].timestamp : report.printedAt,
           updatedAt: report.historySnapshot.length > 0 ? report.historySnapshot[0].timestamp : report.printedAt,
           history: report.historySnapshot,
-          isArchived: true,
+          isArchived: true, // It's an archived report
       };
       root.render(
         <PrintableItemReport
@@ -214,16 +215,15 @@ export default function ReportsPage() {
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            {/* <CardTitle>Item Transaction History (Bank Statement Style)</CardTitle>
-            <CardDescription>Select a warehouse and an item to view its detailed transaction log.</CardDescription> */}
+            <CardTitle>Transportations</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="warehouse-select" className="block text-sm font-medium text-foreground mb-1">
+                <label htmlFor="warehouse-select" className="block text-sm font-medium text-foreground mb-1 text-right">
                   Select Warehouse
                 </label>
-                <Select onValueChange={handleWarehouseChange} value={selectedWarehouseId || undefined}>
+                <Select onValueChange={handleWarehouseChange} value={selectedWarehouseId || undefined} dir="rtl">
                   <SelectTrigger id="warehouse-select" className="w-full">
                     <SelectValue placeholder="Choose a warehouse..." />
                   </SelectTrigger>
@@ -235,16 +235,16 @@ export default function ReportsPage() {
                         </SelectItem>
                       ))
                     ) : (
-                      <div className="p-4 text-sm text-muted-foreground">No active warehouses available.</div>
+                      <div className="p-4 text-sm text-muted-foreground text-right">No active warehouses available.</div>
                     )}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <label htmlFor="item-select" className="block text-sm font-medium text-foreground mb-1">
+                <label htmlFor="item-select" className="block text-sm font-medium text-foreground mb-1 text-right">
                   Select Item
                 </label>
-                <Select onValueChange={handleItemChange} value={selectedItemId || undefined} disabled={!selectedWarehouseId || itemsInSelectedWarehouse.length === 0}>
+                <Select onValueChange={handleItemChange} value={selectedItemId || undefined} disabled={!selectedWarehouseId || itemsInSelectedWarehouse.length === 0} dir="rtl">
                   <SelectTrigger id="item-select" className="w-full">
                     <SelectValue placeholder={!selectedWarehouseId ? "Select a warehouse first" : itemsInSelectedWarehouse.length === 0 ? "No items in this warehouse" : "Choose an item..."} />
                   </SelectTrigger>
@@ -256,7 +256,7 @@ export default function ReportsPage() {
                         </SelectItem>
                       ))
                     ) : (
-                       <div className="p-4 text-sm text-muted-foreground">{selectedWarehouseId ? "No items in this warehouse." : "Please select a warehouse first."}</div>
+                       <div className="p-4 text-sm text-muted-foreground text-right">{selectedWarehouseId ? "No items in this warehouse." : "Please select a warehouse first."}</div>
                     )}
                   </SelectContent>
                 </Select>
@@ -283,8 +283,8 @@ export default function ReportsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Archived Printed Reports</CardTitle>
-            <CardDescription>View and re-print previously generated reports.</CardDescription>
+            <CardTitle className="text-right">Archived Printed Reports</CardTitle>
+            <CardDescription className="text-right">View and re-print previously generated reports.</CardDescription>
           </CardHeader>
           <CardContent>
             {archivedReports.length === 0 ? (
@@ -298,29 +298,29 @@ export default function ReportsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="break-words">Report For</TableHead>
-                      <TableHead className="break-words text-xs">Type</TableHead>
-                      <TableHead className="whitespace-nowrap">Printed By</TableHead>
-                      <TableHead className="whitespace-nowrap">Printed At</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">Printed At</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">Printed By</TableHead>
+                      <TableHead className="break-words text-xs text-right">Type</TableHead>
+                      <TableHead className="break-words text-right">Report For</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {archivedReports.sort((a,b) => new Date(b.printedAt).getTime() - new Date(a.printedAt).getTime()).map((report) => (
                       <TableRow key={report.id}>
-                        <TableCell className="font-medium break-words">
-                          {report.reportType === 'ITEM' ? report.itemName : report.warehouseName}
-                          {report.reportType === 'ITEM' && <span className="text-xs text-muted-foreground block"> (in {report.warehouseName})</span>}
+                        <TableCell className="text-left"> {/* Actions usually LTR aligned */}
+                          <Button variant="outline" size="sm" onClick={() => handlePrintArchivedReport(report)}>
+                            <Printer className="ml-2 h-3 w-3" /> Re-print
+                          </Button>
                         </TableCell>
-                        <TableCell className="break-words text-xs">
+                        <TableCell className="text-xs whitespace-nowrap text-right">{format(new Date(report.printedAt), 'P p', { locale: arSA })}</TableCell>
+                        <TableCell className="whitespace-nowrap text-right">{report.printedBy}</TableCell>
+                        <TableCell className="break-words text-xs text-right">
                           {report.reportType === 'ITEM' ? 'Item Details' : 'Warehouse Summary'}
                         </TableCell>
-                        <TableCell className="whitespace-nowrap">{report.printedBy}</TableCell>
-                        <TableCell className="text-xs whitespace-nowrap">{format(new Date(report.printedAt), 'P p')}</TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="outline" size="sm" onClick={() => handlePrintArchivedReport(report)}>
-                            <Printer className="mr-2 h-3 w-3" /> Re-print
-                          </Button>
+                        <TableCell className="font-medium break-words text-right">
+                          {report.reportType === 'ITEM' ? report.itemName : report.warehouseName}
+                          {report.reportType === 'ITEM' && <span className="text-xs text-muted-foreground block"> (in {report.warehouseName})</span>}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -334,6 +334,3 @@ export default function ReportsPage() {
     </>
   );
 }
-
-
-    
