@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle, Home } from "lucide-react";
 import Link from "next/link";
 import { EmptyState } from "@/components/EmptyState";
-// import { useRouter } from 'next/navigation'; // Keep commented unless used
+import { useRouter } from 'next/navigation';
 
 export default function WarehousesPage() {
-  // const router = useRouter(); // Keep commented unless used
+  const router = useRouter();
 
   // For now, we'll assume there are no warehouses to display
   // This would typically come from a data source
@@ -22,8 +22,8 @@ export default function WarehousesPage() {
         description="Manage all your storage locations from here."
         actions={
           <Button asChild>
-            <Link href="#"> {/* Placeholder link for /warehouses/new */}
-              <PlusCircle className="mr-2 h-4 w-4" /> {/* Adjusted icon size for consistency */}
+            <Link href="/warehouses/new">
+              <PlusCircle className="mr-2 h-4 w-4" />
               Add New Warehouse
             </Link>
           </Button>
@@ -37,10 +37,7 @@ export default function WarehousesPage() {
           action={{
             label: "Add Warehouse",
             onClick: () => {
-              // In a real app, this would navigate to a form or open a modal
-              // For now, we can link to a placeholder or just log
-              console.log("Add Warehouse button clicked");
-              // router.push('/warehouses/new'); // If /warehouses/new exists and router is initialized
+              router.push('/warehouses/new');
             },
             icon: PlusCircle,
           }}
