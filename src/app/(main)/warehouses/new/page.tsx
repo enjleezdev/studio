@@ -22,7 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
-import { useToast } from "@/hooks/use-toast"; // Import useToast
+import { useToast } from "@/hooks/use-toast";
 
 const warehouseFormSchema = z.object({
   name: z.string().min(2, {
@@ -33,9 +33,13 @@ const warehouseFormSchema = z.object({
 
 type WarehouseFormValues = z.infer<typeof warehouseFormSchema>;
 
+interface StoredWarehouse extends WarehouseFormValues {
+  id: string;
+}
+
 export default function NewWarehousePage() {
   const router = useRouter();
-  const { toast } = useToast(); // Get toast function
+  const { toast } = useToast();
   const form = useForm<WarehouseFormValues>({
     resolver: zodResolver(warehouseFormSchema),
     defaultValues: {
@@ -46,10 +50,24 @@ export default function NewWarehousePage() {
 
   function onSubmit(data: WarehouseFormValues) {
     console.log('New warehouse data:', data);
-    // Here you would typically call an API to save the warehouse
-    // For now, let's navigate back to the warehouses page after submission
-    router.push('/warehouses');
-    toast({ title: "Warehouse Created", description: `${data.name} has been successfully created.` });
+    const newWarehouse: StoredWarehouse = {
+      id: Date.now().toString(),
+      name: data.name,
+      description: data.description,
+    };
+
+    try {
+      const existingWarehousesString = localStorage.getItem('warehouses');
+      const existingWarehouses: StoredWarehouse[] = existingWarehousesString ? JSON.parse(existingWarehousesString) : [];
+      existingWarehouses.push(newWarehouse);
+      localStorage.setItem('warehouses', JSON.stringify(existingWarehouses));
+      
+      toast({ title: "Warehouse Created", description: `${data.name} has been successfully created.` });
+      router.push('/warehouses');
+    } catch (error) {
+      console.error("Failed to save warehouse to localStorage", error);
+      toast({ title: "Error", description: "Failed to save warehouse. Please try again.", variant: "destructive" });
+    }
   }
 
   return (

@@ -1,19 +1,63 @@
 'use client';
 
+import * as React from 'react';
+import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Home } from "lucide-react";
-import Link from "next/link";
+import { PlusCircle, Home, Edit, Trash2 } from "lucide-react"; // Added Edit and Trash2
 import { EmptyState } from "@/components/EmptyState";
-// Removed: import { useRouter } from 'next/navigation';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
+
+interface StoredWarehouse {
+  id: string;
+  name: string;
+  description?: string;
+}
 
 export default function WarehousesPage() {
-  // Removed: const router = useRouter();
+  const [warehouses, setWarehouses] = React.useState<StoredWarehouse[]>([]);
+  const [selectedWarehouseForDelete, setSelectedWarehouseForDelete] = React.useState<StoredWarehouse | null>(null);
+  const { toast } = useToast();
 
-  // For now, we'll assume there are no warehouses to display
-  // This would typically come from a data source
-  const warehouses: any[] = [];
+  React.useEffect(() => {
+    try {
+      const storedWarehousesString = localStorage.getItem('warehouses');
+      if (storedWarehousesString) {
+        const storedWarehouses: StoredWarehouse[] = JSON.parse(storedWarehousesString);
+        setWarehouses(storedWarehouses);
+      }
+    } catch (error) {
+      console.error("Failed to load warehouses from localStorage", error);
+      // Optionally, show a toast error
+    }
+  }, []);
+
+  const handleDeleteWarehouse = () => {
+    if (!selectedWarehouseForDelete) return;
+
+    try {
+      const updatedWarehouses = warehouses.filter(wh => wh.id !== selectedWarehouseForDelete.id);
+      localStorage.setItem('warehouses', JSON.stringify(updatedWarehouses));
+      setWarehouses(updatedWarehouses);
+      toast({ title: "Warehouse Deleted", description: `${selectedWarehouseForDelete.name} has been deleted.` });
+      setSelectedWarehouseForDelete(null); // Close dialog
+    } catch (error) {
+      console.error("Failed to delete warehouse from localStorage", error);
+      toast({ title: "Error", description: "Failed to delete warehouse.", variant: "destructive" });
+    }
+  };
 
   return (
     <>
@@ -36,34 +80,60 @@ export default function WarehousesPage() {
           description="Get started by adding your first warehouse."
           action={{
             label: "Add Warehouse",
-            href: "/warehouses/new", // Changed from onClick to href
+            href: "/warehouses/new",
             icon: PlusCircle,
           }}
         />
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {warehouses.map((warehouse) => (
-            <Card key={warehouse.id}>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  {warehouse.name}
+            <Card key={warehouse.id} className="flex flex-col">
+              <CardHeader className="flex-grow">
+                <div className="flex items-center justify-between">
+                  <CardTitle>{warehouse.name}</CardTitle>
                   <Home className="h-5 w-5 text-muted-foreground" />
-                </CardTitle>
-                {warehouse.location && (
-                  <CardDescription>{warehouse.location}</CardDescription>
+                </div>
+                {warehouse.description && (
+                  <CardDescription className="mt-1 text-sm text-muted-foreground">{warehouse.description}</CardDescription>
                 )}
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-2">
                 <p className="text-sm text-muted-foreground">
-                  {warehouse.itemCount !== undefined
-                    ? `${warehouse.itemCount} items`
-                    : "Manage items in this warehouse."}
+                  {/* Placeholder for item count or other info */}
+                  Items: 0 {/* Or manage items for this warehouse */}
                 </p>
               </CardContent>
-              {/* Add CardFooter if needed for actions like "View Details" */}
+              <div className="flex items-center justify-end gap-2 p-4 pt-0 border-t mt-auto">
+                <Button variant="ghost" size="icon" onClick={() => alert(`Edit ${warehouse.name} - coming soon!`)} aria-label={`Edit ${warehouse.name}`}>
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setSelectedWarehouseForDelete(warehouse)} aria-label={`Delete ${warehouse.name}`}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+              </div>
             </Card>
           ))}
         </div>
+      )}
+      {selectedWarehouseForDelete && (
+        <AlertDialog open={!!selectedWarehouseForDelete} onOpenChange={(open) => !open && setSelectedWarehouseForDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure you want to delete &quot;{selectedWarehouseForDelete.name}&quot;?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the warehouse and all associated data.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setSelectedWarehouseForDelete(null)}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteWarehouse} className="bg-destructive hover:bg-destructive/90">
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
     </>
   );
