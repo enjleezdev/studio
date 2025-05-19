@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Warehouse, Package, ListChecks, Bot, Settings, Users, ChevronDown, ChevronUp, LogOut, FileText, LayoutDashboard, History, Archive as ArchiveIcon } from "lucide-react"; // Added History, ArchiveIcon
+import { Home, Warehouse, Package, ListChecks, Bot, Settings, Users, ChevronDown, ChevronUp, LogOut, FileText, LayoutDashboard, History, Archive as ArchiveIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
@@ -19,28 +19,35 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarGroupContent,
-  useSidebar, // Import useSidebar
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
-// AppLogo component is removed from here as it's moving to the warehouses page.
+// Miniature App Logo for Sidebar
+const MiniAppLogo = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-8 w-8 text-primary">
+    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+    <path d="M2 17l10 5 10-5"/>
+    <path d="M2 12l10 5 10-5"/>
+  </svg>
+);
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { state, isMobile, setOpenMobile } = useSidebar(); 
+  const { state, isMobile, setOpenMobile } = useSidebar();
 
   const isActive = (path: string) => {
     if (path.includes("[") && path.includes("]")) {
       const basePath = path.substring(0, path.indexOf("["));
       return pathname.startsWith(basePath);
     }
-    if (path === "/reports" && pathname.startsWith("/reports")) return true; 
+    if (path === "/reports" && pathname.startsWith("/reports")) return true;
     if (path === "/archive" && pathname.startsWith("/archive")) return true;
     return pathname === path || (path !== "/" && pathname.startsWith(path));
   };
-  
+
   const handleLinkClick = () => {
     if (isMobile) {
       setOpenMobile(false);
@@ -49,8 +56,12 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r">
-      <SidebarHeader>
-        {/* AppLogo used to be here. It has been moved to the warehouses page. */}
+      <SidebarHeader className={cn(
+        "flex items-center h-14", // Ensure consistent height and vertical alignment
+        state === 'collapsed' ? 'justify-center' : 'px-4 justify-start' // Center when collapsed, pad and align left when expanded
+      )}>
+        <MiniAppLogo />
+        {/* {state !== 'collapsed' && <span className="ml-2 text-md font-semibold text-primary">FP</span>} */}
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
@@ -75,7 +86,7 @@ export function AppSidebar() {
               onClick={handleLinkClick}
             >
               <Link href="/reports">
-                <FileText /> 
+                <FileText />
                 <span>Reports</span>
               </Link>
             </SidebarMenuButton>
@@ -88,7 +99,7 @@ export function AppSidebar() {
               onClick={handleLinkClick}
             >
               <Link href="/archive">
-                <ArchiveIcon /> 
+                <ArchiveIcon />
                 <span>Archive</span>
               </Link>
             </SidebarMenuButton>
@@ -136,14 +147,14 @@ export function AppSidebar() {
           )}>
             <Avatar className="size-8">
               <AvatarImage src="https://placehold.co/40x40.png" alt="User" data-ai-hint="user avatar" />
-              <AvatarFallback>FP</AvatarFallback> {/* Updated Fallback */}
+              <AvatarFallback>FP</AvatarFallback>
             </Avatar>
             <div className={cn(
               "flex flex-col transition-[opacity]",
               state === "collapsed" && "opacity-0 hidden"
             )}>
               <span className="text-sm font-medium text-sidebar-foreground">Admin User</span>
-              <span className="text-xs text-sidebar-foreground/70">admin@flowgistic.com</span> {/* Updated email domain */}
+              <span className="text-xs text-sidebar-foreground/70">admin@flowgistic.com</span>
             </div>
           </div>
       </SidebarFooter>
