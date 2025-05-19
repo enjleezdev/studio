@@ -1,9 +1,9 @@
 
+
 export interface Warehouse {
   id: string;
   name: string;
   description?: string;
-  // createdAt: string; // ISO string date - Already exists from previous warehouse implementation
 }
 
 export interface Item {
@@ -13,7 +13,7 @@ export interface Item {
   quantity: number;
   createdAt: string; // ISO string date
   updatedAt: string; // ISO string date
-  history: HistoryEntry[]; // Added history tracking
+  history: HistoryEntry[]; 
 }
 
 export type HistoryEntryType = 
@@ -26,17 +26,23 @@ export type HistoryEntryType =
   | 'DELETE_WAREHOUSE';
 
 export interface HistoryEntry {
-  id: string; // Unique ID for the history entry
-  // warehouseId: string; // Redundant if history is part of Item, but useful for a global history log
-  // warehouseName?: string; // Denormalized
-  // itemId?: string;        // Redundant if history is part of Item
-  // itemName?: string;      // Denormalized, optional
+  id: string; 
   type: HistoryEntryType;
-  change: number;        // e.g., +5, -3. For CREATE_ITEM, this is the initial quantity.
+  change: number;        
   quantityBefore: number; 
   quantityAfter: number; 
   comment?: string;
   timestamp: string; // ISO string date
 }
 
+export interface ArchivedReport {
+  id: string; // e.g., itemID-timestamp
+  warehouseId: string;
+  warehouseName: string;
+  itemId: string;
+  itemName: string;
+  printedBy: string; // User who printed
+  printedAt: string; // ISO string date of printing
+  historySnapshot: HistoryEntry[]; // A snapshot of the item's history at the time of printing
+}
     

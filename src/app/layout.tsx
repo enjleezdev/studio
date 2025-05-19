@@ -1,7 +1,9 @@
+
 import type {Metadata} from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
-import { Toaster } from "@/components/ui/toaster"; // Import Toaster
+import './print.css'; // Import print styles
+import { Toaster } from "@/components/ui/toaster"; 
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -14,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'StockPilot - Inventory Management',
-  description: 'Efficiently manage your warehouse inventory with StockPilot.',
+  title: 'StockPilot - إدارة المخزون',
+  description: 'إدارة مخزون المستودعات بكفاءة مع StockPilot.',
 };
 
 export default function RootLayout({
@@ -24,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
         {children}
         <Toaster />
