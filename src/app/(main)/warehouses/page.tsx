@@ -233,17 +233,17 @@ export default function WarehousesPage() {
           {warehouses.map((warehouse) => (
             <Card key={warehouse.id} className="flex flex-col">
               <Link href={`/warehouses/${warehouse.id}`} className="flex flex-col flex-grow hover:bg-muted/50 transition-colors rounded-t-lg">
-                <CardHeader className="flex-grow p-4"> 
+                <CardHeader className="flex-grow p-2"> 
                   <div className="flex items-start justify-between">
-                    <CardTitle className="text-xl mb-1 break-words">{warehouse.name}</CardTitle> 
+                    <CardTitle className="text-lg mb-0.5 break-words">{warehouse.name}</CardTitle> 
                     <Home className="h-5 w-5 text-muted-foreground shrink-0" />
                   </div>
                   {warehouse.description && (
-                    <CardDescription className="text-xs text-muted-foreground line-clamp-3 break-words">{warehouse.description}</CardDescription> 
+                    <CardDescription className="text-xs text-muted-foreground line-clamp-2 break-words">{warehouse.description}</CardDescription> 
                   )}
                 </CardHeader>
               </Link>
-              <div className="flex items-center justify-end gap-1 p-3 pt-0 border-t mt-auto"> 
+              <div className="flex items-center justify-end gap-1 p-1.5 pt-0 border-t mt-auto"> 
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button variant="ghost" size="sm" onClick={() => handlePrintWarehouseReport(warehouse)} aria-label={`Print report for ${warehouse.name}`}>
