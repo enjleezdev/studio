@@ -17,13 +17,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, PackagePlus, PackageSearch, Edit, Trash2, PlusCircle, MinusCircle, History as HistoryIcon } from 'lucide-react';
+import { ArrowLeft, PackagePlus, PackageSearch, PlusCircle, MinusCircle, History as HistoryIcon, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { EmptyState } from '@/components/EmptyState';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import type { Item, Warehouse, HistoryEntry } from '@/lib/types';
-// Removed ScrollArea import as we will use direct div overflow
-// import { ScrollArea } from '@/components/ui/scroll-area';
 
 
 const itemFormSchema = z.object({
@@ -122,7 +120,7 @@ export default function WarehouseDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [warehouseId, router, toast, selectedItemForHistory?.id]); // Removed selectedItemForHistory from deps, using its id
+  }, [warehouseId, router, toast]); 
 
   React.useEffect(() => {
     if (warehouseId) {
@@ -290,89 +288,89 @@ export default function WarehouseDetailPage() {
               }}
             />
           ) : (
-            <Table className="table-fixed">
+            <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[40%]">Name</TableHead>
-                  <TableHead className="w-[20%] text-right">Quantity</TableHead>
-                  <TableHead className="w-[40%] text-right">Actions</TableHead>
+                  <TableHead className="w-full">Item Details</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {items.map((item) => (
                   <React.Fragment key={item.id}>
                     <TableRow className={selectedItemForHistory?.id === item.id ? 'bg-muted/50 border-b-0' : ''}>
-                      <TableCell className="font-medium break-words">{item.name}</TableCell>
-                      <TableCell className="text-right">{item.quantity}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1 flex-wrap">
-                          <Button variant="ghost" size="icon" onClick={() => handleOpenStockAdjustmentDialog(item, 'ADD_STOCK')} aria-label={`Add stock to ${item.name}`}>
-                            <PlusCircle className="h-4 w-4 text-green-600" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleOpenStockAdjustmentDialog(item, 'CONSUME_STOCK')} aria-label={`Consume stock from ${item.name}`}>
-                            <MinusCircle className="h-4 w-4 text-red-600" />
-                          </Button>
-                           <Button variant="ghost" size="icon" onClick={() => handleShowHistory(item)} aria-label={`View history for ${item.name}`} className={selectedItemForHistory?.id === item.id ? 'bg-accent text-accent-foreground' : ''}>
-                            <HistoryIcon className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => alert(`Edit ${item.name} - coming soon!`)} aria-label={`Edit ${item.name}`}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => alert(`Delete ${item.name} - coming soon!`)} aria-label={`Delete ${item.name}`}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                      <TableCell className="py-3 px-4 align-top">
+                        <div className="flex flex-col items-start gap-1">
+                          <span className="font-semibold text-base break-words">{item.name}</span>
+                          <span className="text-sm text-muted-foreground">
+                            Quantity: {item.quantity}
+                          </span>
+                          <div className="flex items-center gap-0.5 flex-wrap mt-1">
+                            <Button variant="ghost" size="icon" onClick={() => handleOpenStockAdjustmentDialog(item, 'ADD_STOCK')} aria-label={`Add stock to ${item.name}`}>
+                              <PlusCircle className="h-5 w-5 text-green-600" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleOpenStockAdjustmentDialog(item, 'CONSUME_STOCK')} aria-label={`Consume stock from ${item.name}`}>
+                              <MinusCircle className="h-5 w-5 text-red-600" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleShowHistory(item)} aria-label={`View history for ${item.name}`} className={selectedItemForHistory?.id === item.id ? 'bg-accent text-accent-foreground' : ''}>
+                              <HistoryIcon className="h-5 w-5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => alert(`Delete item ${item.name} - coming soon!`)} aria-label={`Delete ${item.name}`}>
+                              <Trash2 className="h-5 w-5" />
+                            </Button>
+                          </div>
                         </div>
                       </TableCell>
                     </TableRow>
                     {selectedItemForHistory?.id === item.id && item.history && (
                       <TableRow className="bg-muted/20 hover:bg-muted/30">
-                        <TableCell colSpan={3} className="p-0">
-                          {/* This div will handle the scrolling for the history table */}
-                          <div className="w-full overflow-x-auto max-h-[300px] p-4 space-y-3">
-                            <h4 className="text-md font-semibold text-foreground">
-                              Transaction History: <span className="font-bold">{item.name}</span>
-                            </h4>
-                            {item.history.length > 0 ? (
-                                <table className="text-xs border-collapse min-w-full">
-                                  <thead className="sticky top-0 bg-muted/80 dark:bg-muted/60 backdrop-blur-sm z-10">
-                                    <tr>
-                                      <th className="py-2 px-3 text-left font-medium text-muted-foreground whitespace-nowrap">Date</th>
-                                      <th className="py-2 px-3 text-left font-medium text-muted-foreground whitespace-nowrap">Type</th>
-                                      <th className="py-2 px-3 text-right font-medium text-muted-foreground whitespace-nowrap">Change</th>
-                                      <th className="py-2 px-3 text-right font-medium text-muted-foreground whitespace-nowrap">Before</th>
-                                      <th className="py-2 px-3 text-right font-medium text-muted-foreground whitespace-nowrap">After</th>
-                                      <th className="py-2 px-3 text-left font-medium text-muted-foreground min-w-[150px] whitespace-normal">Comment</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {[...item.history].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((entry) => (
-                                      <tr key={entry.id} className="border-b border-border/50 last:border-b-0 hover:bg-muted/10 dark:hover:bg-muted/5">
-                                        <td className="py-1.5 px-3 whitespace-nowrap">{format(new Date(entry.timestamp), "PPpp")}</td>
-                                        <td className="py-1.5 px-3 whitespace-nowrap">
-                                          <span className={`px-2 py-0.5 rounded-full text-xs ${
-                                            entry.type === 'CREATE_ITEM' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' :
-                                            entry.type === 'ADD_STOCK' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200' :
-                                            entry.type === 'CONSUME_STOCK' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200' :
-                                            entry.type === 'ADJUST_STOCK' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-200' :
-                                            'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200'
-                                          }`}>
-                                            {entry.type.replace('_', ' ')}
-                                          </span>
-                                        </td>
-                                        <td className={`py-1.5 px-3 text-right font-medium whitespace-nowrap ${entry.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                          {entry.change > 0 ? `+${entry.change}` : entry.change}
-                                        </td>
-                                        <td className="py-1.5 px-3 text-right whitespace-nowrap">{entry.quantityBefore}</td>
-                                        <td className="py-1.5 px-3 text-right font-semibold whitespace-nowrap">{entry.quantityAfter}</td>
-                                        <td className="py-1.5 px-3 text-muted-foreground min-w-[150px] whitespace-normal break-words">{entry.comment}</td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                            ) : (
-                              <p className="text-sm text-muted-foreground p-4 text-center">No transaction history for this item.</p>
-                            )}
-                          </div>
+                         <TableCell className="p-0 overflow-hidden">
+                           <div className="h-full w-full overflow-auto"> {/* This div handles scrolling */}
+                            <div className="p-4 space-y-3">
+                                <h4 className="text-md font-semibold text-foreground">
+                                Transaction History: <span className="font-bold">{item.name}</span>
+                                </h4>
+                                {item.history.length > 0 ? (
+                                    <table className="text-xs border-collapse min-w-full">
+                                    <thead className="sticky top-0 bg-muted/80 dark:bg-muted/60 backdrop-blur-sm z-10">
+                                        <tr>
+                                        <th className="py-2 px-3 text-left font-medium text-muted-foreground whitespace-nowrap">Date</th>
+                                        <th className="py-2 px-3 text-left font-medium text-muted-foreground whitespace-nowrap">Type</th>
+                                        <th className="py-2 px-3 text-right font-medium text-muted-foreground whitespace-nowrap">Change</th>
+                                        <th className="py-2 px-3 text-right font-medium text-muted-foreground whitespace-nowrap">Before</th>
+                                        <th className="py-2 px-3 text-right font-medium text-muted-foreground whitespace-nowrap">After</th>
+                                        <th className="py-2 px-3 text-left font-medium text-muted-foreground min-w-[150px] whitespace-normal">Comment</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {[...item.history].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((entry) => (
+                                        <tr key={entry.id} className="border-b border-border/50 last:border-b-0 hover:bg-muted/10 dark:hover:bg-muted/5">
+                                            <td className="py-1.5 px-3 whitespace-nowrap">{format(new Date(entry.timestamp), "PPpp")}</td>
+                                            <td className="py-1.5 px-3 whitespace-nowrap">
+                                            <span className={`px-2 py-0.5 rounded-full text-xs ${
+                                                entry.type === 'CREATE_ITEM' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' :
+                                                entry.type === 'ADD_STOCK' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200' :
+                                                entry.type === 'CONSUME_STOCK' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200' :
+                                                entry.type === 'ADJUST_STOCK' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-200' :
+                                                'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200'
+                                            }`}>
+                                                {entry.type.replace('_', ' ')}
+                                            </span>
+                                            </td>
+                                            <td className={`py-1.5 px-3 text-right font-medium whitespace-nowrap ${entry.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                            {entry.change > 0 ? `+${entry.change}` : entry.change}
+                                            </td>
+                                            <td className="py-1.5 px-3 text-right whitespace-nowrap">{entry.quantityBefore}</td>
+                                            <td className="py-1.5 px-3 text-right font-semibold whitespace-nowrap">{entry.quantityAfter}</td>
+                                            <td className="py-1.5 px-3 text-muted-foreground min-w-[150px] whitespace-normal break-words">{entry.comment}</td>
+                                        </tr>
+                                        ))}
+                                    </tbody>
+                                    </table>
+                                ) : (
+                                <p className="text-sm text-muted-foreground p-4 text-center">No transaction history for this item.</p>
+                                )}
+                            </div>
+                           </div>
                         </TableCell>
                       </TableRow>
                     )}
@@ -493,6 +491,8 @@ export default function WarehouseDetailPage() {
     </>
   );
 }
+    
+
     
 
     
