@@ -4,7 +4,7 @@
 import * as React from 'react';
 import ReactDOM from 'react-dom/client';
 import { PageHeader } from "@/components/PageHeader";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Printer, Archive, Package as PackageIcon, Warehouse as WarehouseIcon } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
@@ -31,6 +31,7 @@ import {
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { PrintableItemReport } from '@/components/PrintableItemReport';
 import { PrintableWarehouseReport } from '@/components/PrintableWarehouseReport';
+import { PrintableTransactionsReport } from '@/components/PrintableTransactionsReport'; // New import
 
 // Augmented history entry type for the consolidated log
 interface FlattenedHistoryEntry extends HistoryEntry {
@@ -117,9 +118,9 @@ export default function ReportsPage() {
 
   React.useEffect(() => {
     let transactions = allFlattenedTransactions;
-    if (selectedWarehouseId) {
+    if (selectedWarehouseId && selectedWarehouseId !== "all_warehouses_option_value_placeholder_for_clear") {
       transactions = transactions.filter(t => t.warehouseId === selectedWarehouseId);
-      if (selectedItemId) {
+      if (selectedItemId && selectedItemId !== "all_items_option_value_placeholder_for_clear") {
         transactions = transactions.filter(t => t.itemId === selectedItemId);
       }
     }
@@ -127,14 +128,34 @@ export default function ReportsPage() {
   }, [selectedWarehouseId, selectedItemId, allFlattenedTransactions]);
 
   const handleWarehouseChange = (warehouseId: string) => {
-    setSelectedWarehouseId(warehouseId);
-    setSelectedItemId(null); // Reset item selection when warehouse changes
+    if (warehouseId === "all_warehouses_option_value_placeholder_for_clear") {
+        setSelectedWarehouseId(null);
+    } else {
+        setSelectedWarehouseId(warehouseId);
+    }
+    setSelectedItemId(null); // Reset item selection when warehouse changes or is cleared
   };
 
   const handleItemChange = (itemId: string) => {
-    setSelectedItemId(itemId);
+     if (itemId === "all_items_option_value_placeholder_for_clear") {
+        setSelectedItemId(null);
+    } else {
+        setSelectedItemId(itemId);
+    }
   };
 
+  const getCurrentReportTitle = () => {
+    if (selectedWarehouseId && selectedWarehouseId !== "all_warehouses_option_value_placeholder_for_clear") {
+      const wh = allWarehouses.find(w => w.id === selectedWarehouseId);
+      if (selectedItemId && selectedItemId !== "all_items_option_value_placeholder_for_clear") {
+        const item = allItems.find(i => i.id === selectedItemId);
+        return `Transactions for ${item?.name || 'Selected Item'} in ${wh?.name || 'Warehouse'}`;
+      }
+      return `Transactions for ${wh?.name || 'Selected Warehouse'}`;
+    }
+    return "All Transactions";
+  };
+  
   const renderTransactionsTable = () => {
     if (filteredTransactions.length === 0 && !isLoading) {
       return (
@@ -146,21 +167,10 @@ export default function ReportsPage() {
       );
     }
 
-    let tableTitle = "All Transactions";
-    if (selectedWarehouseId) {
-      const wh = allWarehouses.find(w => w.id === selectedWarehouseId);
-      tableTitle = `Transactions for ${wh?.name || 'Selected Warehouse'}`;
-      if (selectedItemId) {
-        const item = allItems.find(i => i.id === selectedItemId);
-        tableTitle = `Transactions for ${item?.name || 'Selected Item'} in ${wh?.name || 'Warehouse'}`;
-      }
-    }
-
-
     return (
       <div className="mt-6">
         <h3 className="text-lg font-semibold mb-2">
-          {tableTitle}
+          {getCurrentReportTitle()}
         </h3>
         <ScrollArea className="h-[400px] w-full rounded-md border">
           <Table>
@@ -178,10 +188,10 @@ export default function ReportsPage() {
             </TableHeader>
             <TableBody>
               {filteredTransactions.map((entry) => (
-                <TableRow key={entry.id + entry.timestamp}>
+                <TableRow key={entry.id + entry.timestamp}> {/* Consider more robust key if IDs aren't globally unique */}
                   <TableCell className="text-xs whitespace-nowrap">{format(new Date(entry.timestamp), 'P p')}</TableCell>
-                  <TableCell className="font-medium whitespace-nowrap">{entry.itemName}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{entry.warehouseName}</TableCell>
+                  <TableCell className="font-medium whitespace-nowrap break-words">{entry.itemName}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap break-words">{entry.warehouseName}</TableCell>
                   <TableCell className="whitespace-nowrap">
                     <span className={`px-2 py-0.5 text-xs rounded-full ${
                         entry.type === 'CREATE_ITEM' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
@@ -207,6 +217,38 @@ export default function ReportsPage() {
       </div>
     );
   };
+
+  const handlePrintVisibleTransactions = () => {
+    if (filteredTransactions.length === 0) {
+      toast({ title: "No Data", description: "There are no transactions to print for the current selection.", variant: "default" });
+      return;
+    }
+
+    const printableArea = document.createElement('div');
+    printableArea.id = 'printable-report-area';
+    document.body.appendChild(printableArea);
+
+    const root = ReactDOM.createRoot(printableArea);
+    root.render(
+      <PrintableTransactionsReport
+        transactions={filteredTransactions}
+        reportTitle={getCurrentReportTitle()}
+        printedBy="Admin User" // Replace with actual user if available
+        printDate={new Date()}
+      />
+    );
+
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => {
+        root.unmount();
+        if (document.body.contains(printableArea)) {
+          document.body.removeChild(printableArea);
+        }
+      }, 3000); // Allow time for PDF generation before cleanup
+    }, 250); // Allow time for component to render
+  };
+
 
   const handlePrintArchivedReport = (report: ArchivedReport) => {
     const printableArea = document.createElement('div');
@@ -264,12 +306,12 @@ export default function ReportsPage() {
         if (document.body.contains(printableArea)) {
           document.body.removeChild(printableArea);
         }
-      }, 100);
+      }, 3000); 
     }, 250);
   };
 
 
-  if (isLoading && allFlattenedTransactions.length === 0) { // Show spinner only on initial full load
+  if (isLoading && allFlattenedTransactions.length === 0) { 
     return <LoadingSpinner className="mx-auto my-10" size={48} />;
   }
 
@@ -281,9 +323,14 @@ export default function ReportsPage() {
       />
       <div className="space-y-6">
         <Card>
-          <CardHeader>
-            <CardTitle>Transportations</CardTitle>
-            {/* Description removed as per previous request */}
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Transportations</CardTitle>
+            </div>
+            <Button variant="outline" onClick={handlePrintVisibleTransactions} disabled={filteredTransactions.length === 0}>
+              <Printer className="mr-2 h-4 w-4" />
+              Print Visible
+            </Button>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -291,13 +338,12 @@ export default function ReportsPage() {
                 <label htmlFor="warehouse-select" className="block text-sm font-medium text-foreground mb-1">
                   Select Warehouse
                 </label>
-                <Select onValueChange={handleWarehouseChange} value={selectedWarehouseId || undefined}>
+                <Select onValueChange={handleWarehouseChange} value={selectedWarehouseId || "all_warehouses_option_value_placeholder_for_clear"}>
                   <SelectTrigger id="warehouse-select" className="w-full">
                     <SelectValue placeholder="All Warehouses" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all_warehouses_option_value_placeholder_for_clear">All Warehouses</SelectItem> 
-                    {/* Placeholder, actual clear handled by setting selectedWarehouseId to null or an "all" value */}
                     {allWarehouses.map(wh => (
                       <SelectItem key={wh.id} value={wh.id}>
                         {wh.name}
@@ -310,13 +356,22 @@ export default function ReportsPage() {
                 <label htmlFor="item-select" className="block text-sm font-medium text-foreground mb-1">
                   Select Item
                 </label>
-                <Select onValueChange={handleItemChange} value={selectedItemId || undefined} disabled={!selectedWarehouseId || itemsInSelectedWarehouse.length === 0}>
+                <Select 
+                    onValueChange={handleItemChange} 
+                    value={selectedItemId || "all_items_option_value_placeholder_for_clear"} 
+                    disabled={!selectedWarehouseId || selectedWarehouseId === "all_warehouses_option_value_placeholder_for_clear" || itemsInSelectedWarehouse.length === 0}
+                >
                   <SelectTrigger id="item-select" className="w-full">
-                    <SelectValue placeholder={!selectedWarehouseId ? "Select warehouse first" : itemsInSelectedWarehouse.length === 0 ? "No items in this warehouse" : "All Items in Warehouse"} />
+                    <SelectValue placeholder={
+                        !selectedWarehouseId || selectedWarehouseId === "all_warehouses_option_value_placeholder_for_clear" 
+                        ? "Select warehouse first" 
+                        : itemsInSelectedWarehouse.length === 0 
+                        ? "No items in this warehouse" 
+                        : "All Items in Warehouse"
+                    } />
                   </SelectTrigger>
                   <SelectContent>
                      <SelectItem value="all_items_option_value_placeholder_for_clear">All Items in Warehouse</SelectItem>
-                     {/* Placeholder for "All Items" */}
                     {itemsInSelectedWarehouse.map(item => (
                       <SelectItem key={item.id} value={item.id}>
                         {item.name} (Qty: {item.quantity})
@@ -362,7 +417,7 @@ export default function ReportsPage() {
                           {report.reportType === 'ITEM' && <span className="text-xs text-muted-foreground block"> (in {report.warehouseName})</span>}
                         </TableCell>
                         <TableCell className="break-words text-xs">
-                          {report.reportType === 'ITEM' ? 'Item Details' : 'Warehouse Summary'}
+                          {report.reportType === 'ITEM' ? 'Item Details' : report.reportType === 'WAREHOUSE' ? 'Warehouse Summary' : 'Transactions'}
                         </TableCell>
                         <TableCell className="whitespace-nowrap">{report.printedBy}</TableCell>
                         <TableCell className="text-xs whitespace-nowrap">{format(new Date(report.printedAt), 'P p')}</TableCell>
@@ -383,5 +438,3 @@ export default function ReportsPage() {
     </>
   );
 }
-
-    
