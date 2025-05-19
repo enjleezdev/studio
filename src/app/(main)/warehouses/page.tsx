@@ -23,22 +23,36 @@ import { useToast } from "@/hooks/use-toast";
 import type { Warehouse, Item } from '@/lib/types';
 import { cn } from "@/lib/utils";
 
-// App Logo component
+// Updated App Logo component
 const AppLogo = ({ className }: { className?: string }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
     className={cn("h-12 w-12 text-primary", className)}
   >
-    {/* New paths for a "workflow" style icon */}
-    <rect width="8" height="8" x="3" y="3" rx="2"/>
-    <path d="M7 11v4a2 2 0 0 0 2 2h4"/>
-    <rect width="8" height="8" x="13" y="13" rx="2"/>
+    {/* Outer Warehouse Box: uses currentColor for stroke from className */}
+    <rect 
+      x="1.5" y="1.5" width="21" height="21" rx="3" ry="3" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="1.5" 
+    />
+
+    {/* Inner Workflow Logo (original paths, scaled and centered) */}
+    {/* The group is scaled, so the strokeWidth="2" will appear thinner (2 * 0.7 = 1.4) */}
+    <g 
+      transform="translate(12 12) scale(0.7) translate(-12 -12)" 
+      stroke="currentColor" 
+      strokeWidth="2" // This will be effectively 1.4px after scaling
+      fill="none" 
+    >
+      {/* Original workflow paths */}
+      <rect width="8" height="8" x="3" y="3" rx="2"/>
+      <path d="M7 11v4a2 2 0 0 0 2 2h4"/>
+      <rect width="8" height="8" x="13" y="13" rx="2"/>
+    </g>
   </svg>
 );
 
@@ -50,7 +64,7 @@ const AppLogoAndBrand = () => {
       <h1 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
         Stock Pilot
       </h1>
-      <p className="mt-2 text-xs text-muted-foreground"> {/* Changed text-sm to text-xs */}
+      <p className="mt-2 text-xs text-muted-foreground"> 
         powered by{' '}
         <Link href="https://www.enjleez.tech/" target="_blank" rel="noopener noreferrer" className="font-medium text-red-500 hover:text-red-600 underline">
           ENJLEEZ TECH
@@ -96,7 +110,6 @@ export default function WarehousesPage() {
         allWarehouses[warehouseIndex] = { ...allWarehouses[warehouseIndex], isArchived: true };
         localStorage.setItem('warehouses', JSON.stringify(allWarehouses));
         
-        // Also archive all items within this warehouse
         const existingItemsString = localStorage.getItem('items');
         if (existingItemsString) {
             let existingItems: Item[] = JSON.parse(existingItemsString);
