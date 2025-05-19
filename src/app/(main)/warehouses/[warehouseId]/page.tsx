@@ -122,7 +122,7 @@ export default function WarehouseDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [warehouseId, router, toast]);
+  }, [warehouseId, router, toast, selectedItemForHistory?.id]); // Removed 'warehouse' from deps, added selectedItemForHistory.id for refreshing history view
 
   React.useEffect(() => {
     if (warehouseId) {
@@ -328,7 +328,7 @@ export default function WarehouseDetailPage() {
                       {selectedItemForHistory?.id === item.id && item.history && (
                         <TableRow className="bg-muted/20 hover:bg-muted/30">
                           <TableCell colSpan={3} className="p-0">
-                            <div className="p-4 space-y-3">
+                            <div className="p-4 space-y-3 overflow-hidden"> {/* Added overflow-hidden here */}
                               <h4 className="text-md font-semibold text-foreground">
                                 Transaction History: <span className="font-bold">{item.name}</span>
                               </h4>
@@ -337,12 +337,12 @@ export default function WarehouseDetailPage() {
                                   <Table>
                                     <TableHeader>
                                       <TableRow>
-                                        <TableHead className="w-[150px] text-xs whitespace-nowrap">Date</TableHead>
+                                        <TableHead className="text-xs whitespace-nowrap">Date</TableHead> {/* Removed w-[150px] */}
                                         <TableHead className="text-xs whitespace-nowrap">Type</TableHead>
                                         <TableHead className="text-right text-xs whitespace-nowrap">Change</TableHead>
                                         <TableHead className="text-right text-xs whitespace-nowrap">Before</TableHead>
                                         <TableHead className="text-right text-xs whitespace-nowrap">After</TableHead>
-                                        <TableHead className="text-xs min-w-[150px]">Comment</TableHead>
+                                        <TableHead className="text-xs min-w-[150px] whitespace-normal">Comment</TableHead>
                                       </TableRow>
                                     </TableHeader>
                                     <TableBody>
