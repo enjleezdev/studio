@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'; // Main table components
 import { ArrowLeft, PackagePlus, PackageSearch, Edit, Trash2, PlusCircle, MinusCircle, History as HistoryIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { EmptyState } from '@/components/EmptyState';
@@ -110,7 +110,6 @@ export default function WarehouseDetailPage() {
       const warehouseItems = allItems.filter(item => item.warehouseId === warehouseId);
       setItems(warehouseItems);
 
-      // If an item's history was being viewed, refresh its data
       if (selectedItemForHistory) {
         const updatedSelectedItem = warehouseItems.find(item => item.id === selectedItemForHistory.id);
         setSelectedItemForHistory(updatedSelectedItem || null);
@@ -122,7 +121,7 @@ export default function WarehouseDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [warehouseId, router, toast, selectedItemForHistory?.id]); // Removed 'warehouse' from deps, added selectedItemForHistory.id for refreshing history view
+  }, [warehouseId, router, toast]); // Removed selectedItemForHistory.id
 
   React.useEffect(() => {
     if (warehouseId) {
@@ -232,7 +231,7 @@ export default function WarehouseDetailPage() {
   
   const handleShowHistory = (item: Item) => {
     if (selectedItemForHistory?.id === item.id) {
-      setSelectedItemForHistory(null); // Toggle off if already selected
+      setSelectedItemForHistory(null); 
     } else {
       setSelectedItemForHistory(item);
     }
@@ -272,120 +271,118 @@ export default function WarehouseDetailPage() {
         }
       />
       
-      <div className="grid gap-6 md:grid-cols-1">
-        <Card>
-          <CardHeader>
-            <CardTitle>Inventory Items</CardTitle>
-            <CardDescription>All items currently stored in {warehouse.name}. Click the <HistoryIcon className="inline h-4 w-4 text-muted-foreground" /> icon to view an item's transaction history.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {items.length === 0 ? (
-              <EmptyState
-                IconComponent={PackageSearch}
-                title="No Items Yet"
-                description="Start by adding the first item to this warehouse."
-                action={{
-                  label: "Add Item",
-                  onClick: () => setIsAddItemDialogOpen(true),
-                  icon: PackagePlus,
-                }}
-              />
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead className="text-right">Quantity</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {items.map((item) => (
-                    <React.Fragment key={item.id}>
-                      <TableRow className={selectedItemForHistory?.id === item.id ? 'bg-muted/50 border-b-0' : ''}>
-                        <TableCell className="font-medium break-words">{item.name}</TableCell>
-                        <TableCell className="text-right">{item.quantity}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1 flex-wrap">
-                            <Button variant="ghost" size="icon" onClick={() => handleOpenStockAdjustmentDialog(item, 'ADD_STOCK')} aria-label={`Add stock to ${item.name}`}>
-                              <PlusCircle className="h-4 w-4 text-green-600" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleOpenStockAdjustmentDialog(item, 'CONSUME_STOCK')} aria-label={`Consume stock from ${item.name}`}>
-                              <MinusCircle className="h-4 w-4 text-red-600" />
-                            </Button>
-                             <Button variant="ghost" size="icon" onClick={() => handleShowHistory(item)} aria-label={`View history for ${item.name}`} className={selectedItemForHistory?.id === item.id ? 'bg-accent text-accent-foreground' : ''}>
-                              <HistoryIcon className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => alert(`Edit ${item.name} - coming soon!`)} aria-label={`Edit ${item.name}`}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => alert(`Delete ${item.name} - coming soon!`)} aria-label={`Delete ${item.name}`}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+      <Card>
+        <CardHeader>
+          <CardTitle>Inventory Items</CardTitle>
+          <CardDescription>All items currently stored in {warehouse.name}. Click the <HistoryIcon className="inline h-4 w-4 text-muted-foreground" /> icon to view an item's transaction history.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {items.length === 0 ? (
+            <EmptyState
+              IconComponent={PackageSearch}
+              title="No Items Yet"
+              description="Start by adding the first item to this warehouse."
+              action={{
+                label: "Add Item",
+                onClick: () => setIsAddItemDialogOpen(true),
+                icon: PackagePlus,
+              }}
+            />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead className="text-right">Quantity</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.map((item) => (
+                  <React.Fragment key={item.id}>
+                    <TableRow className={selectedItemForHistory?.id === item.id ? 'bg-muted/50 border-b-0' : ''}>
+                      <TableCell className="font-medium break-words">{item.name}</TableCell>
+                      <TableCell className="text-right">{item.quantity}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1 flex-wrap">
+                          <Button variant="ghost" size="icon" onClick={() => handleOpenStockAdjustmentDialog(item, 'ADD_STOCK')} aria-label={`Add stock to ${item.name}`}>
+                            <PlusCircle className="h-4 w-4 text-green-600" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleOpenStockAdjustmentDialog(item, 'CONSUME_STOCK')} aria-label={`Consume stock from ${item.name}`}>
+                            <MinusCircle className="h-4 w-4 text-red-600" />
+                          </Button>
+                           <Button variant="ghost" size="icon" onClick={() => handleShowHistory(item)} aria-label={`View history for ${item.name}`} className={selectedItemForHistory?.id === item.id ? 'bg-accent text-accent-foreground' : ''}>
+                            <HistoryIcon className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => alert(`Edit ${item.name} - coming soon!`)} aria-label={`Edit ${item.name}`}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => alert(`Delete ${item.name} - coming soon!`)} aria-label={`Delete ${item.name}`}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    {selectedItemForHistory?.id === item.id && item.history && (
+                      <TableRow className="bg-muted/20 hover:bg-muted/30">
+                        <TableCell colSpan={3} className="p-0">
+                          <div className="p-4 space-y-3">
+                            <h4 className="text-md font-semibold text-foreground">
+                              Transaction History: <span className="font-bold">{item.name}</span>
+                            </h4>
+                            {item.history.length > 0 ? (
+                              <ScrollArea className="h-[250px] rounded-md border bg-card">
+                                <table className="w-full text-xs border-collapse">
+                                  <thead className="bg-muted/40 dark:bg-muted/20 sticky top-0 z-10">
+                                    <tr>
+                                      <th className="py-2 px-3 text-left font-medium text-muted-foreground whitespace-nowrap">Date</th>
+                                      <th className="py-2 px-3 text-left font-medium text-muted-foreground whitespace-nowrap">Type</th>
+                                      <th className="py-2 px-3 text-right font-medium text-muted-foreground whitespace-nowrap">Change</th>
+                                      <th className="py-2 px-3 text-right font-medium text-muted-foreground whitespace-nowrap">Before</th>
+                                      <th className="py-2 px-3 text-right font-medium text-muted-foreground whitespace-nowrap">After</th>
+                                      <th className="py-2 px-3 text-left font-medium text-muted-foreground min-w-[150px] whitespace-normal">Comment</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {[...item.history].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((entry) => (
+                                      <tr key={entry.id} className="border-b border-border/50 last:border-b-0 hover:bg-muted/10 dark:hover:bg-muted/5">
+                                        <td className="py-1.5 px-3 whitespace-nowrap">{format(new Date(entry.timestamp), "PPpp")}</td>
+                                        <td className="py-1.5 px-3 whitespace-nowrap">
+                                          <span className={`px-2 py-0.5 rounded-full text-xs ${
+                                            entry.type === 'CREATE_ITEM' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' :
+                                            entry.type === 'ADD_STOCK' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200' :
+                                            entry.type === 'CONSUME_STOCK' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200' :
+                                            entry.type === 'ADJUST_STOCK' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-200' :
+                                            'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200'
+                                          }`}>
+                                            {entry.type.replace('_', ' ')}
+                                          </span>
+                                        </td>
+                                        <td className={`py-1.5 px-3 text-right font-medium whitespace-nowrap ${entry.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                          {entry.change > 0 ? `+${entry.change}` : entry.change}
+                                        </td>
+                                        <td className="py-1.5 px-3 text-right whitespace-nowrap">{entry.quantityBefore}</td>
+                                        <td className="py-1.5 px-3 text-right font-semibold whitespace-nowrap">{entry.quantityAfter}</td>
+                                        <td className="py-1.5 px-3 text-muted-foreground min-w-[150px] whitespace-normal break-words">{entry.comment}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </ScrollArea>
+                            ) : (
+                              <p className="text-sm text-muted-foreground p-4 text-center">No transaction history for this item.</p>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
-                      {selectedItemForHistory?.id === item.id && item.history && (
-                        <TableRow className="bg-muted/20 hover:bg-muted/30">
-                          <TableCell colSpan={3} className="p-0">
-                            <div className="p-4 space-y-3 overflow-hidden"> {/* Added overflow-hidden here */}
-                              <h4 className="text-md font-semibold text-foreground">
-                                Transaction History: <span className="font-bold">{item.name}</span>
-                              </h4>
-                              {item.history.length > 0 ? (
-                                <ScrollArea className="h-[250px] rounded-md border bg-card">
-                                  <Table>
-                                    <TableHeader>
-                                      <TableRow>
-                                        <TableHead className="text-xs whitespace-nowrap">Date</TableHead> {/* Removed w-[150px] */}
-                                        <TableHead className="text-xs whitespace-nowrap">Type</TableHead>
-                                        <TableHead className="text-right text-xs whitespace-nowrap">Change</TableHead>
-                                        <TableHead className="text-right text-xs whitespace-nowrap">Before</TableHead>
-                                        <TableHead className="text-right text-xs whitespace-nowrap">After</TableHead>
-                                        <TableHead className="text-xs min-w-[150px] whitespace-normal">Comment</TableHead>
-                                      </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                      {[...item.history].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((entry) => (
-                                        <TableRow key={entry.id} className="text-xs hover:bg-muted/10">
-                                          <TableCell className="py-1.5 whitespace-nowrap">{format(new Date(entry.timestamp), "PPpp")}</TableCell>
-                                          <TableCell className="py-1.5 whitespace-nowrap">
-                                            <span className={`px-2 py-0.5 rounded-full text-xs ${
-                                              entry.type === 'CREATE_ITEM' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' :
-                                              entry.type === 'ADD_STOCK' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200' :
-                                              entry.type === 'CONSUME_STOCK' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200' :
-                                              entry.type === 'ADJUST_STOCK' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-200' :
-                                              'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200'
-                                            }`}>
-                                              {entry.type.replace('_', ' ')}
-                                            </span>
-                                          </TableCell>
-                                          <TableCell className={`text-right font-medium py-1.5 whitespace-nowrap ${entry.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                            {entry.change > 0 ? `+${entry.change}` : entry.change}
-                                          </TableCell>
-                                          <TableCell className="text-right py-1.5 whitespace-nowrap">{entry.quantityBefore}</TableCell>
-                                          <TableCell className="text-right font-semibold py-1.5 whitespace-nowrap">{entry.quantityAfter}</TableCell>
-                                          <TableCell className="break-words py-1.5 text-muted-foreground min-w-[150px] whitespace-normal">{entry.comment}</TableCell>
-                                        </TableRow>
-                                      ))}
-                                    </TableBody>
-                                  </Table>
-                                </ScrollArea>
-                              ) : (
-                                <p className="text-sm text-muted-foreground p-4 text-center">No transaction history for this item.</p>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                    )}
+                  </React.Fragment>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
 
       {/* Add Item Dialog */}
@@ -496,6 +493,4 @@ export default function WarehouseDetailPage() {
     </>
   );
 }
-
-
     
