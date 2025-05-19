@@ -69,9 +69,11 @@ export default function ArchivePage() {
     try {
       const existingItemsString = localStorage.getItem('items');
       let allItems: Item[] = existingItemsString ? JSON.parse(existingItemsString) : [];
+      let restoredItemName = "The item";
       
       const itemIndex = allItems.findIndex(i => i.id === itemId);
       if (itemIndex > -1) {
+        restoredItemName = allItems[itemIndex].name;
         allItems[itemIndex] = { 
           ...allItems[itemIndex], 
           isArchived: false, 
@@ -79,8 +81,17 @@ export default function ArchivePage() {
         };
         localStorage.setItem('items', JSON.stringify(allItems));
         
-        toast({ title: "Item Restored", description: `${allItems[itemIndex].name} has been restored.` });
-        loadArchivedData(); // Refresh the archived items list
+        toast({ title: "Item Restored", description: `${restoredItemName} has been restored.` });
+        
+        // Optimistically update the local state for immediate feedback
+        setArchivedItems(prevItems => prevItems.filter(i => i.id !== itemId));
+        
+        // Still call loadArchivedData to ensure all related states are consistent
+        // and to handle any other side effects or data loads if any.
+        // For instance, if restoring an item should also unarchive its warehouse (not current logic).
+        // Or if other parts of the page depend on the full list being re-fetched.
+        // For now, primarily to keep allWarehouses up-to-date if needed elsewhere, though not strictly for this item list.
+        loadArchivedData(); 
       } else {
         toast({ title: "Error", description: "Item not found for restoring.", variant: "destructive" });
       }
