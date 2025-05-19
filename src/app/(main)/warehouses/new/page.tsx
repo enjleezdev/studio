@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast"; // Import useToast
 
 const warehouseFormSchema = z.object({
   name: z.string().min(2, {
@@ -34,6 +35,7 @@ type WarehouseFormValues = z.infer<typeof warehouseFormSchema>;
 
 export default function NewWarehousePage() {
   const router = useRouter();
+  const { toast } = useToast(); // Get toast function
   const form = useForm<WarehouseFormValues>({
     resolver: zodResolver(warehouseFormSchema),
     defaultValues: {
@@ -46,8 +48,8 @@ export default function NewWarehousePage() {
     console.log('New warehouse data:', data);
     // Here you would typically call an API to save the warehouse
     // For now, let's navigate back to the warehouses page after submission
-    // router.push('/warehouses');
-    // toast({ title: "Warehouse Created", description: `${data.name} has been successfully created.` });
+    router.push('/warehouses');
+    toast({ title: "Warehouse Created", description: `${data.name} has been successfully created.` });
   }
 
   return (
