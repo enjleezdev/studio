@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Warehouse, Package, BarChart3, ListChecks, Bot, Settings, Users, ChevronDown, ChevronUp, LogOut, FileText, LayoutDashboard, History } from "lucide-react"; // Added History
+import { Home, Warehouse, Package, BarChart3, ListChecks, Bot, Settings, Users, ChevronDown, ChevronUp, LogOut, FileText, LayoutDashboard, History, Archive as ArchiveIcon } from "lucide-react"; // Added History, ArchiveIcon
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
@@ -39,15 +39,15 @@ const AppLogo = () => (
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { state, isMobile, setOpenMobile } = useSidebar(); // Get isMobile and setOpenMobile
+  const { state, isMobile, setOpenMobile } = useSidebar(); 
 
   const isActive = (path: string) => {
-    // For dynamic paths like /inventory/[id], check if pathname starts with the base path
     if (path.includes("[") && path.includes("]")) {
       const basePath = path.substring(0, path.indexOf("["));
       return pathname.startsWith(basePath);
     }
-    if (path === "/reports" && pathname.startsWith("/reports")) return true; // Ensure reports and its sub-paths are active
+    if (path === "/reports" && pathname.startsWith("/reports")) return true; 
+    if (path === "/archive" && pathname.startsWith("/archive")) return true;
     return pathname === path || (path !== "/" && pathname.startsWith(path));
   };
   
@@ -77,24 +77,6 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          {/* Inventory link might be dynamic or context-dependent. 
-              For now, item details and history are accessed via warehouses/[warehouseId] page.
-              A dedicated top-level /inventory page might list all items across all warehouses,
-              which is a feature for later.
-          */}
-          {/* <SidebarMenuItem>
-            <SidebarMenuButton 
-              asChild 
-              isActive={isActive("/inventory")} // A general inventory overview if implemented
-              tooltip={state === "collapsed" ? "Inventory" : undefined}
-              onClick={handleLinkClick}
-            >
-              <Link href="/inventory"> 
-                <Package />
-                <span>Inventory</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem> */}
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
@@ -105,6 +87,19 @@ export function AppSidebar() {
               <Link href="/reports">
                 <FileText /> 
                 <span>Reports</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={isActive("/archive")}
+              tooltip={state === "collapsed" ? "Archive" : undefined}
+              onClick={handleLinkClick}
+            >
+              <Link href="/archive">
+                <ArchiveIcon /> 
+                <span>Archive</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -121,7 +116,6 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-           {/* AI Features Menu (Example) */}
            <SidebarGroup className="pt-4">
             <SidebarGroupLabel className="group-data-[collapsible=icon]:justify-center">
               AI Tools
@@ -166,3 +160,4 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
+

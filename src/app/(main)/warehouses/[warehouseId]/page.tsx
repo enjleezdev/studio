@@ -9,24 +9,23 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
 import ReactDOM from 'react-dom/client';
-import { arSA } from 'date-fns/locale';
 
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, PackagePlus, PackageSearch, PlusCircle, MinusCircle, History as HistoryIcon, Printer, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, PackagePlus, PackageSearch, PlusCircle, MinusCircle, History as HistoryIcon, Printer, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { EmptyState } from '@/components/EmptyState';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import type { Item, Warehouse, HistoryEntry, ArchivedReport } from '@/lib/types';
 import { PrintableItemReport } from '@/components/PrintableItemReport';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-
 
 const itemFormSchema = z.object({
   name: z.string().min(2, {
@@ -80,6 +79,7 @@ export default function WarehouseDetailPage() {
   const [itemForAdjustment, setItemForAdjustment] = React.useState<Item | null>(null);
   const [adjustmentType, setAdjustmentType] = React.useState<'ADD_STOCK' | 'CONSUME_STOCK' | null>(null);
   const [selectedItemForHistory, setSelectedItemForHistory] = React.useState<Item | null>(null);
+  const [itemToArchive, setItemToArchive] = React.useState<Item | null>(null);
 
   const itemForm = useForm<ItemFormValues>({
     resolver: zodResolver(itemFormSchema),
@@ -123,7 +123,7 @@ export default function WarehouseDetailPage() {
         allItems = JSON.parse(storedItemsString);
       }
       
-      const warehouseItems = allItems.filter(item => item.warehouseId === warehouseId);
+      const warehouseItems = allItems.filter(item => item.warehouseId === warehouseId && !item.isArchived);
       setItems(warehouseItems);
 
       if (selectedItemForHistory) {
@@ -137,7 +137,7 @@ export default function WarehouseDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [warehouseId, router, toast]); 
+  }, [warehouseId, router, toast, selectedItemForHistory?.id]); 
 
   React.useEffect(() => {
     if (warehouseId) {
@@ -168,6 +168,7 @@ export default function WarehouseDetailPage() {
       createdAt: now,
       updatedAt: now,
       history: [initialHistoryEntry],
+      isArchived: false,
     };
 
     try {
@@ -319,10 +320,33 @@ export default function WarehouseDetailPage() {
             variant: "destructive",
           });
         }
-      }, 3000); // Increased delay for cleanup and archiving
+      }, 3000); 
     }, 250); 
   };
 
+  const handleArchiveItem = () => {
+    if (!itemToArchive) return;
+
+    try {
+      const existingItemsString = localStorage.getItem('items');
+      let allItems: Item[] = existingItemsString ? JSON.parse(existingItemsString) : [];
+      
+      const itemIndex = allItems.findIndex(i => i.id === itemToArchive.id);
+      if (itemIndex > -1) {
+        allItems[itemIndex] = { ...allItems[itemIndex], isArchived: true, updatedAt: new Date().toISOString() };
+        localStorage.setItem('items', JSON.stringify(allItems));
+        
+        toast({ title: "Item Archived", description: `${itemToArchive.name} has been moved to the archive.` });
+        setItemToArchive(null); 
+        loadWarehouseAndItems(); 
+      } else {
+        toast({ title: "Error", description: "Item not found for archiving.", variant: "destructive" });
+      }
+    } catch (error) {
+      console.error("Failed to archive item in localStorage", error);
+      toast({ title: "Error", description: "Failed to archive item.", variant: "destructive" });
+    }
+  };
 
   if (isLoading) {
     return <LoadingSpinner className="mx-auto my-10" size={48} />;
@@ -338,6 +362,9 @@ export default function WarehouseDetailPage() {
 
   return (
     <TooltipProvider>
+      <AlertDialog open={!!itemToArchive} onOpenChange={(isOpen) => {
+        if (!isOpen) setItemToArchive(null);
+      }}>
       <PageHeader
         title={warehouse.name}
         description={warehouse.description || "Manage items and details for this warehouse."}
@@ -426,11 +453,13 @@ export default function WarehouseDetailPage() {
                             </Tooltip>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => alert(`Deleting item ${item.name} - coming soon!`)} aria-label={`Delete ${item.name}`}>
-                                  <Trash2 className="h-5 w-5" />
-                                </Button>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setItemToArchive(item)} aria-label={`Archive ${item.name}`}>
+                                    <Trash2 className="h-5 w-5" />
+                                  </Button>
+                                </AlertDialogTrigger>
                               </TooltipTrigger>
-                              <TooltipContent><p>Delete Item (Not Implemented)</p></TooltipContent>
+                              <TooltipContent><p>Archive Item</p></TooltipContent>
                             </Tooltip>
                           </div>
                         </div>
@@ -605,6 +634,24 @@ export default function WarehouseDetailPage() {
           </Form>
         </DialogContent>
       </Dialog>
+      {itemToArchive && (
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive Item "{itemToArchive.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action will move the item to the archive. You can restore it later.
+              This will not delete its transaction history.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setItemToArchive(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleArchiveItem} className="bg-destructive hover:bg-destructive/90">
+              Archive Item
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      )}
+      </AlertDialog>
     </TooltipProvider>
   );
 }
