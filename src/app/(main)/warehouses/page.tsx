@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle, Home } from "lucide-react";
 import Link from "next/link";
 import { EmptyState } from "@/components/EmptyState";
-import { useRouter } from 'next/navigation';
+// Removed: import { useRouter } from 'next/navigation';
 
 export default function WarehousesPage() {
-  const router = useRouter();
+  // Removed: const router = useRouter();
 
   // For now, we'll assume there are no warehouses to display
   // This would typically come from a data source
@@ -36,9 +36,7 @@ export default function WarehousesPage() {
           description="Get started by adding your first warehouse."
           action={{
             label: "Add Warehouse",
-            onClick: () => {
-              router.push('/warehouses/new');
-            },
+            href: "/warehouses/new", // Changed from onClick to href
             icon: PlusCircle,
           }}
         />
