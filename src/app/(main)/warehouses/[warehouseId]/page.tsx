@@ -18,13 +18,14 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, PackagePlus, PackageSearch, PlusCircle, MinusCircle, History as HistoryIcon, Trash2, Printer } from 'lucide-react';
+import { ArrowLeft, PackagePlus, PackageSearch, PlusCircle, MinusCircle, History as HistoryIcon, Trash2, Printer, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { EmptyState } from '@/components/EmptyState';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import type { Item, Warehouse, HistoryEntry, ArchivedReport } from '@/lib/types';
 import { PrintableItemReport } from '@/components/PrintableItemReport';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { arSA } from 'date-fns/locale';
 
 const itemFormSchema = z.object({
   name: z.string().min(2, {
@@ -33,7 +34,7 @@ const itemFormSchema = z.object({
   quantity: z.coerce
     .number({ invalid_type_error: 'Quantity must be a number.' })
     .int('Quantity must be an integer.')
-    .positive({ message: 'Quantity must be a positive number.' }),
+    .min(0, { message: 'Quantity must be a non-negative number.'}), // Allow 0 for initial creation if needed
 });
 
 type ItemFormValues = z.infer<typeof itemFormSchema>;
@@ -48,9 +49,20 @@ const stockAdjustmentFormSchema = z.object({
 
 type StockAdjustmentFormValues = z.infer<typeof stockAdjustmentFormSchema>;
 
-// Helper to format history types - simple space replacement
-const formatHistoryType = (type: HistoryEntry['type']): string => {
-  return type.replace('_', ' ');
+// Helper to format history types
+const translateHistoryType = (type: HistoryEntry['type']): string => {
+  switch (type) {
+    case 'CREATE_ITEM':
+      return 'Item Created';
+    case 'ADD_STOCK':
+      return 'Stock Added';
+    case 'CONSUME_STOCK':
+      return 'Stock Consumed';
+    case 'ADJUST_STOCK':
+      return 'Stock Adjusted';
+    default:
+      return type.replace('_', ' ');
+  }
 };
 
 export default function WarehouseDetailPage() {
@@ -125,7 +137,7 @@ export default function WarehouseDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [warehouseId, router, toast, selectedItemForHistory?.id]); 
+  }, [warehouseId, router, toast]); 
 
   React.useEffect(() => {
     if (warehouseId) {
@@ -166,7 +178,7 @@ export default function WarehouseDetailPage() {
       
       toast({ title: "Item Added", description: `${newItem.name} has been added to ${warehouse?.name}.` });
       setIsAddItemDialogOpen(false); 
-      itemForm.reset(); 
+      itemForm.reset({ name: '', quantity: 1 }); 
       loadWarehouseAndItems(); 
     } catch (error) {
       console.error("Failed to save item to localStorage", error);
@@ -242,7 +254,12 @@ export default function WarehouseDetailPage() {
   };
 
   const handlePrintReport = (itemToPrint: Item) => {
-    if (!warehouse || !itemToPrint) return;
+    if (!warehouse || !itemToPrint) {
+      console.error("Cannot print: Warehouse or Item data missing.", { warehouse, itemToPrint });
+      toast({ title: "Print Error", description: "Warehouse or item data is missing.", variant: "destructive"});
+      return;
+    }
+    console.log("handlePrintReport called for item:", itemToPrint.name, "with history:", itemToPrint.history);
 
     const printableArea = document.createElement('div');
     printableArea.id = 'printable-report-area'; 
@@ -259,45 +276,55 @@ export default function WarehouseDetailPage() {
     );
 
     setTimeout(() => {
+      console.log("Attempting to print. Printable area content length:", printableArea.innerHTML.length);
+      if (printableArea.innerHTML.length < 50) { // Arbitrary small length to detect emptyish content
+          console.warn("Printable area seems empty or too short:", printableArea.innerHTML);
+      }
       window.print();
-
-      root.unmount();
-      if (document.body.contains(printableArea)) {
-        document.body.removeChild(printableArea);
-      }
       
-      const now = new Date();
-      const archivedReport: ArchivedReport = {
-        id: `${itemToPrint.id}-${now.getTime()}`,
-        warehouseId: warehouse.id,
-        warehouseName: warehouse.name,
-        itemId: itemToPrint.id,
-        itemName: itemToPrint.name,
-        printedBy: "Admin User", 
-        printedAt: now.toISOString(),
-        historySnapshot: JSON.parse(JSON.stringify(itemToPrint.history || [])), 
-      };
+      // Cleanup and archiving should ideally happen after user interacts with print dialog
+      // but window.print() is blocking and doesn't have a reliable callback for completion.
+      // This timeout is for DOM cleanup and archiving.
+      setTimeout(() => {
+        root.unmount();
+        if (document.body.contains(printableArea)) {
+          document.body.removeChild(printableArea);
+        }
+        
+        const now = new Date();
+        const archivedReport: ArchivedReport = {
+          id: `${itemToPrint.id}-${now.getTime()}`,
+          warehouseId: warehouse.id,
+          warehouseName: warehouse.name,
+          itemId: itemToPrint.id,
+          itemName: itemToPrint.name,
+          printedBy: "Admin User", 
+          printedAt: now.toISOString(),
+          historySnapshot: JSON.parse(JSON.stringify(itemToPrint.history || [])), 
+        };
 
-      try {
-        const existingReportsString = localStorage.getItem('archivedReports');
-        const existingReports: ArchivedReport[] = existingReportsString
-          ? JSON.parse(existingReportsString)
-          : [];
-        existingReports.push(archivedReport);
-        localStorage.setItem('archivedReports', JSON.stringify(existingReports));
-        toast({
-          title: "Report Archived",
-          description: `Report for item ${itemToPrint.name} has been saved.`,
-        });
-      } catch (error) {
-        console.error("Failed to archive report:", error);
-        toast({
-          title: "Archiving Error",
-          description: "Failed to save report due to an error.",
-          variant: "destructive",
-        });
-      }
-    }, 100); 
+        try {
+          const existingReportsString = localStorage.getItem('archivedReports');
+          const existingReports: ArchivedReport[] = existingReportsString
+            ? JSON.parse(existingReportsString)
+            : [];
+          existingReports.push(archivedReport);
+          localStorage.setItem('archivedReports', JSON.stringify(existingReports));
+          toast({
+            title: "Report Archived",
+            description: `Report for item ${itemToPrint.name} has been saved.`,
+          });
+        } catch (error) {
+          console.error("Failed to archive report:", error);
+          toast({
+            title: "Archiving Error",
+            description: "Failed to save report due to an error.",
+            variant: "destructive",
+          });
+        }
+      }, 500); // Delay for cleanup and archiving
+
+    }, 250); // Increased timeout before calling window.print()
   };
 
 
@@ -337,7 +364,7 @@ export default function WarehouseDetailPage() {
       <Card>
         <CardHeader>
           <CardTitle>Inventory Items</CardTitle>
-          <CardDescription>All items currently stored in {warehouse.name}. Click the <HistoryIcon className="inline h-4 w-4 text-muted-foreground" /> icon to view item transaction history.</CardDescription>
+          <CardDescription>All items currently stored in {warehouse.name}.</CardDescription>
         </CardHeader>
         <CardContent>
           {items.length === 0 ? (
@@ -403,26 +430,26 @@ export default function WarehouseDetailPage() {
                             </Tooltip>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => alert(`Deleting item ${item.name} will be implemented soon!`)} aria-label={`Delete ${item.name}`}>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => alert(`Deleting item ${item.name} - coming soon!`)} aria-label={`Delete ${item.name}`}>
                                   <Trash2 className="h-5 w-5" />
                                 </Button>
                               </TooltipTrigger>
-                              <TooltipContent><p>Delete Item</p></TooltipContent>
+                              <TooltipContent><p>Delete Item (Not Implemented)</p></TooltipContent>
                             </Tooltip>
                           </div>
                         </div>
                       </TableCell>
                     </TableRow>
                     {selectedItemForHistory?.id === item.id && item.history && (
-                      <TableRow className="bg-muted/20 hover:bg-muted/30">
-                         <TableCell className="p-0 overflow-hidden"> 
-                           <div className="h-full w-full overflow-auto">
-                            <div className="p-4 space-y-3">
+                       <TableRow className="bg-muted/20 hover:bg-muted/30">
+                         <TableCell className="p-0 overflow-hidden">
+                           <div className="h-full w-full overflow-auto"> {/* This div handles scrolling for its content */}
+                             <div className="p-4 space-y-3">
                                 <h4 className="text-md font-semibold text-foreground text-left">
                                 Transaction History: <span className="font-bold">{item.name}</span>
                                 </h4>
                                 {item.history.length > 0 ? (
-                                    <table className="text-xs border-collapse min-w-full text-left">
+                                    <table className="text-xs border-collapse min-w-full text-left"> {/* min-w-full allows table to be wider than parent if needed */}
                                     <thead className="sticky top-0 bg-muted/80 dark:bg-muted/60 backdrop-blur-sm z-10">
                                         <tr>
                                         <th className="py-2 px-3 text-left font-medium text-muted-foreground whitespace-nowrap">Date</th>
@@ -434,9 +461,9 @@ export default function WarehouseDetailPage() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {[...item.history].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((entry) => (
+                                        {[...(item.history || [])].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((entry) => (
                                         <tr key={entry.id} className="border-b border-border/50 last:border-b-0 hover:bg-muted/10 dark:hover:bg-muted/5">
-                                            <td className="py-1.5 px-3 whitespace-nowrap">{format(new Date(entry.timestamp), "PPpp")}</td>
+                                            <td className="py-1.5 px-3 whitespace-nowrap">{format(new Date(entry.timestamp), "PPpp", { locale: arSA })}</td>
                                             <td className="py-1.5 px-3 whitespace-nowrap">
                                             <span className={`px-2 py-0.5 rounded-full text-xs ${
                                                 entry.type === 'CREATE_ITEM' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' :
@@ -445,7 +472,7 @@ export default function WarehouseDetailPage() {
                                                 entry.type === 'ADJUST_STOCK' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-200' :
                                                 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200'
                                             }`}>
-                                                {formatHistoryType(entry.type)}
+                                                {translateHistoryType(entry.type)}
                                             </span>
                                             </td>
                                             <td className={`py-1.5 px-3 text-center font-medium whitespace-nowrap ${entry.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
@@ -474,7 +501,12 @@ export default function WarehouseDetailPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={isAddItemDialogOpen} onOpenChange={setIsAddItemDialogOpen}>
+      <Dialog open={isAddItemDialogOpen} onOpenChange={(isOpen) => {
+        setIsAddItemDialogOpen(isOpen);
+        if (!isOpen) {
+            itemForm.reset({ name: '', quantity: 1 });
+        }
+      }}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Add New Item to {warehouse?.name}</DialogTitle>
@@ -491,7 +523,7 @@ export default function WarehouseDetailPage() {
                   <FormItem>
                     <FormLabel>Item Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Electronics" {...field} />
+                      <Input placeholder="e.g., Product A" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -502,9 +534,9 @@ export default function WarehouseDetailPage() {
                 name="quantity"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Quantity</FormLabel>
+                    <FormLabel>Initial Quantity</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="e.g., 100" {...field} />
+                      <Input type="number" placeholder="e.g., 10" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

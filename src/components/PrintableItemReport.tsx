@@ -4,21 +4,40 @@
 
 import type { Item, HistoryEntry } from '@/lib/types';
 import { format } from 'date-fns';
+import { arSA } from 'date-fns/locale'; // For Arabic date formatting if needed, though current app is LTR/English
 
-interface PrintableItemReportProps {
-  warehouseName: string;
-  item: Item;
-  printedBy: string;
-  printDate: Date;
-}
-
-// Helper to format history types - simple space replacement
-const formatHistoryType = (type: HistoryEntry['type']): string => {
-  return type.replace('_', ' ');
+// Helper to format history types
+const translateHistoryType = (type: HistoryEntry['type']): string => {
+  switch (type) {
+    case 'CREATE_ITEM':
+      return 'Item Created';
+    case 'ADD_STOCK':
+      return 'Stock Added';
+    case 'CONSUME_STOCK':
+      return 'Stock Consumed';
+    case 'ADJUST_STOCK':
+      return 'Stock Adjusted';
+    default:
+      return type.replace('_', ' ');
+  }
 };
 
+
 export function PrintableItemReport({ warehouseName, item, printedBy, printDate }: PrintableItemReportProps) {
-  const sortedHistory = [...(item.history || [])].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  // Log received props for debugging
+  console.log("PrintableItemReport rendering with props:", { warehouseName, item, printedBy, printDate });
+  if (item && item.history) {
+    console.log("Item history for printing:", item.history);
+  } else {
+    console.warn("Item or item history is undefined/null in PrintableItemReport");
+  }
+
+
+  const sortedHistory = [...(item?.history || [])].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+  if (!item) {
+    return <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>Error: Item data is missing for the report.</div>;
+  }
 
   return (
     <div style={{ fontFamily: 'Arial, sans-serif', direction: 'ltr', padding: '20px', width: '210mm', margin: '0 auto' }} id="printable-content">
@@ -54,7 +73,7 @@ export function PrintableItemReport({ warehouseName, item, printedBy, printDate 
             text-align: left; /* Default for LTR */
           }
           .print-table th {
-            background-color: #f0f0f0;
+            background-color: #f0f0f0 !important; /* Ensure background prints */
             font-weight: bold;
           }
           .no-print {
@@ -65,14 +84,14 @@ export function PrintableItemReport({ warehouseName, item, printedBy, printDate 
       
       <div className="print-header" style={{ textAlign: 'center', marginBottom: '20px' }}>
         <h1 style={{ fontSize: '18pt', margin: '0 0 5px 0' }}>Item Transaction History Report</h1>
-        <p style={{ fontSize: '12pt', margin: '0' }}>Warehouse: {warehouseName}</p>
+        <p style={{ fontSize: '12pt', margin: '0' }}>Warehouse: {warehouseName || "N/A"}</p>
       </div>
 
       <div style={{ marginBottom: '15px', fontSize: '11pt' }}>
-        <p><strong>Item Name:</strong> {item.name}</p>
-        <p><strong>Current Quantity:</strong> {item.quantity}</p>
+        <p><strong>Item Name:</strong> {item.name || "N/A"}</p>
+        <p><strong>Current Quantity:</strong> {item.quantity !== undefined ? item.quantity : "N/A"}</p>
         <p><strong>Print Date:</strong> {format(printDate, "PPpp")}</p>
-        <p><strong>Printed By:</strong> {printedBy}</p>
+        <p><strong>Printed By:</strong> {printedBy || "System"}</p>
       </div>
 
       <h2 style={{ fontSize: '14pt', marginTop: '20px', marginBottom: '10px', borderBottom: '1px solid #eee', paddingBottom: '5px' }}>
@@ -95,10 +114,10 @@ export function PrintableItemReport({ warehouseName, item, printedBy, printDate 
             {sortedHistory.map((entry) => (
               <tr key={entry.id}>
                 <td style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'left', whiteSpace: 'nowrap' }}>
-                  {format(new Date(entry.timestamp), "PPpp")}
+                  {format(new Date(entry.timestamp), "yyyy-MM-dd HH:mm:ss")}
                 </td>
                 <td style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'left', whiteSpace: 'nowrap' }}>
-                  {formatHistoryType(entry.type)}
+                  {translateHistoryType(entry.type)}
                 </td>
                 <td style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'center', whiteSpace: 'nowrap', color: entry.change >= 0 ? 'green' : 'red' }}>
                   {entry.change > 0 ? `+${entry.change}` : entry.change}
