@@ -99,6 +99,7 @@ export default function ReportsPage() {
 
       flattened.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setAllFlattenedTransactions(flattened);
+      // setFilteredTransactions(flattened); // Initial load handled by filter useEffect
 
       const storedArchivedReportsString = localStorage.getItem('archivedReports');
       if (storedArchivedReportsString) {
@@ -121,7 +122,6 @@ export default function ReportsPage() {
         transactions = transactions.filter(t => t.itemId === selectedItemId);
       }
     } else if (selectedItemId && selectedItemId !== "all_items_option_value_placeholder_for_clear") {
-      // Filter by item only if no specific warehouse is selected (or "All Warehouses" is implied)
       const itemToFilter = allItems.find(item => item.id === selectedItemId);
       if (itemToFilter) {
          transactions = transactions.filter(t => t.itemId === selectedItemId);
@@ -148,8 +148,6 @@ export default function ReportsPage() {
     } else {
       setSelectedWarehouseId(warehouseId);
     }
-    // Reset item selection when warehouse changes, unless "All Warehouses" is selected
-    // If "All Warehouses" is selected, keep the item filter if one was active.
     if (warehouseId !== "all_warehouses_option_value_placeholder_for_clear") {
         setSelectedItemId(null);
     }
@@ -287,7 +285,7 @@ export default function ReportsPage() {
         description="View transaction history and stock levels."
       />
       <div className="space-y-6">
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden w-full">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle>Transportations</CardTitle>
@@ -298,7 +296,7 @@ export default function ReportsPage() {
             </Button>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="flex flex-col gap-4 md:grid md:grid-cols-2 lg:grid-cols-4">
               <div>
                 <label htmlFor="warehouse-select" className="block text-sm font-medium text-foreground mb-1">
                   Select Warehouse
@@ -472,7 +470,7 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden w-full">
           <CardHeader>
             <CardTitle>Archived Printed Reports</CardTitle>
             <CardDescription>View and re-print previously generated reports.</CardDescription>
