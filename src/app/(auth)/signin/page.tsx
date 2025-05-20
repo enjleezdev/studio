@@ -27,6 +27,7 @@ const signInFormSchema = z.object({
 
 type SignInFormValues = z.infer<typeof signInFormSchema>;
 
+// Updated SignInLogo to match the AppLogo from warehouses page
 const SignInLogo = ({ className }: { className?: string }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -116,8 +117,7 @@ export default function SignInPage() {
             ENJLEEZ TECH
           </a>
         </p>
-        <CardTitle className="text-2xl font-bold pt-3">Sign In to EZ Inventory</CardTitle> {/* Moved CardTitle here */}
-        <CardDescription>Enter your email and password to access your account.</CardDescription> {/* Moved CardDescription here */}
+        {/* Removed CardTitle and CardDescription for "Sign In to EZ Inventory" */}
       </CardHeader>
       <CardContent>
         <Form {...form}>
