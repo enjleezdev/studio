@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Warehouse, Package, ListChecks, Bot, Settings, Users, ChevronDown, ChevronUp, LogOut, FileText, Archive as ArchiveIcon, UserCircle } from "lucide-react"; // Added UserCircle
+import { Home, Warehouse, Package, ListChecks, Bot, Settings, Users, ChevronDown, ChevronUp, LogOut, FileText, Archive as ArchiveIcon, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
@@ -20,11 +20,13 @@ import {
   SidebarGroupLabel,
   SidebarGroupContent,
   useSidebar,
-  SidebarTrigger, // Ensure SidebarTrigger is imported if used in layout.tsx
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+
+// Removed MiniAppLogo definition and usage from here
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -52,7 +54,7 @@ export function AppSidebar() {
         "flex items-center h-14",
         state === 'collapsed' ? 'justify-center px-2' : 'px-4 justify-start gap-2'
       )}>
-        {/* Logo and brand name removed from sidebar header */}
+        {/* Header content (logo and name) removed as per user request to clear it */}
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
@@ -117,12 +119,12 @@ export function AppSidebar() {
                 <SidebarMenuButton
                   asChild
                   isActive={isActive("/ai/stock-suggestions")}
-                  tooltip={state === "collapsed" ? "Stock Suggestions" : undefined}
+                  tooltip={state === "collapsed" ? "Enjleez AI Assistant" : undefined}
                   onClick={handleLinkClick}
                 >
                   <Link href="/ai/stock-suggestions">
                     <Bot />
-                    <span>Stock Suggestions</span>
+                    <span>Enjleez AI Assistant</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

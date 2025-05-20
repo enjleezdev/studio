@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Bot, Lightbulb, AlertTriangle } from 'lucide-react';
+import { Bot, Lightbulb, AlertTriangle, Languages } from 'lucide-react';
 import type { Item, Warehouse } from '@/lib/types';
 import { stockLevelSuggestions, type StockLevelSuggestionsInput, type StockLevelSuggestionsOutput } from '@/ai/flows/stock-level-suggestions';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -26,14 +26,14 @@ const suggestionFormSchema = z.object({
 
 type SuggestionFormValues = z.infer<typeof suggestionFormSchema>;
 
-export default function StockSuggestionsPage() {
+export default function EnjleezAIAssistantPage() {
   const { toast } = useToast();
   const [warehouses, setWarehouses] = React.useState<Warehouse[]>([]);
-  const [allItems, setAllItems] = React.useState<Item[]>([]); 
+  const [allItems, setAllItems] = React.useState<Item[]>([]);
   const [itemsInSelectedWarehouse, setItemsInSelectedWarehouse] = React.useState<Item[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [isLoadingData, setIsLoadingData] = React.useState(true);
-  const [suggestionResult, setSuggestionResult] = React.useState<StockLevelSuggestionsOutput | null>(null);
+  const [suggestionResult, setSuggestionResult] = React.useState<StockLevelSuggestionsOutput & { itemNameAnalyzed?: string } | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
   const form = useForm<SuggestionFormValues>({
@@ -70,7 +70,7 @@ export default function StockSuggestionsPage() {
     if (selectedWarehouseId) {
       const filteredItems = allItems.filter(item => item.warehouseId === selectedWarehouseId);
       setItemsInSelectedWarehouse(filteredItems);
-      form.setValue('itemId', ''); 
+      form.setValue('itemId', '');
     } else {
       setItemsInSelectedWarehouse([]);
     }
@@ -89,21 +89,16 @@ export default function StockSuggestionsPage() {
       }
 
       const input: StockLevelSuggestionsInput = {
-        itemId: selectedItem.name, 
+        itemId: selectedItem.name,
         historicalData: `Item: ${selectedItem.name}. User input: ${data.historicalData}. Current Stock: ${selectedItem.quantity}. Item History (last 5 if available): ${
-          selectedItem.history?.slice(-5).map(h => 
+          selectedItem.history?.slice(-5).map(h =>
             `${h.type.replace('_', ' ')} of ${h.change} on ${new Date(h.timestamp).toLocaleDateString()}. Comment: ${h.comment || 'N/A'}`
           ).join('; ') || 'No detailed history available.'
         }`,
       };
-      
+
       const result = await stockLevelSuggestions(input);
-      setSuggestionResult(result);
-      // Update the itemId in suggestionResult if it's not directly part of the AI output but useful for display
-      // This is a bit of a hack; ideally, the AI returns the item ID it processed.
-      if (result && !result.itemId) {
-        setSuggestionResult(prev => prev ? {...prev, itemId: selectedItem.name} : null);
-      }
+      setSuggestionResult({...result, itemNameAnalyzed: selectedItem.name});
 
     } catch (err) {
       console.error("Error getting stock suggestion:", err);
@@ -121,8 +116,8 @@ export default function StockSuggestionsPage() {
   return (
     <>
       <PageHeader
-        title="AI Stock Level Suggestions"
-        description="Get AI-powered recommendations for optimal stock levels."
+        title="Enjleez AI Assistant"
+        description="Get AI-powered insights and suggestions for your inventory."
         actions={
           <Button variant="outline" disabled>
             <Bot className="mr-2 h-4 w-4" />
@@ -227,19 +222,34 @@ export default function StockSuggestionsPage() {
               </div>
             )}
             {!isLoading && !error && suggestionResult && (
-              <div className="space-y-4 text-center">
+              <div className="space-y-4 text-center w-full">
                 <Lightbulb className="mx-auto h-12 w-12 text-primary mb-2" />
                 <p className="text-2xl font-bold text-primary">
                   Suggested Stock Level: {suggestionResult.suggestedStockLevel}
                 </p>
-                <div className="text-left space-y-2 bg-muted p-4 rounded-md">
-                  <p className="text-sm"><strong className="font-medium text-foreground">Reasoning:</strong> {suggestionResult.reasoning}</p>
-                  {suggestionResult.alert && (
-                    <p className="text-sm text-amber-700 dark:text-amber-500"><strong className="font-medium">Alert:</strong> {suggestionResult.alert}</p>
+                <div className="text-left space-y-3 bg-muted p-4 rounded-md text-sm">
+                  <div>
+                    <strong className="font-medium text-foreground block mb-1">Reasoning (English):</strong>
+                    <p>{suggestionResult.reasoning.en}</p>
+                  </div>
+                  <div dir="rtl">
+                    <strong className="font-medium text-foreground block mb-1">الأساس المنطقي (العربية):</strong>
+                    <p>{suggestionResult.reasoning.ar}</p>
+                  </div>
+
+                  {suggestionResult.alert && (suggestionResult.alert.en || suggestionResult.alert.ar) && (
+                    <>
+                      {suggestionResult.alert.en && (
+                        <p className="text-amber-700 dark:text-amber-500 mt-2"><strong className="font-medium">Alert (English):</strong> {suggestionResult.alert.en}</p>
+                      )}
+                      {suggestionResult.alert.ar && (
+                        <p dir="rtl" className="text-amber-700 dark:text-amber-500 mt-1"><strong className="font-medium">تنبيه (العربية):</strong> {suggestionResult.alert.ar}</p>
+                      )}
+                    </>
                   )}
                 </div>
                  <p className="text-xs text-muted-foreground pt-4">
-                    Item Analyzed: {suggestionResult.itemId || "N/A"}
+                    Item Analyzed: {suggestionResult.itemNameAnalyzed || "N/A"}
                 </p>
               </div>
             )}
