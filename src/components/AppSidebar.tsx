@@ -2,9 +2,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import * as React from "react"; 
-import { Home, Warehouse, Package, FileText, Archive as ArchiveIcon, UserCircle, Bot } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import * as React from "react";
+import { Home, Warehouse, Package, FileText, Archive as ArchiveIcon, UserCircle, Bot, LogOut } from "lucide-react";
+import { signOut } from "firebase/auth";
+
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
@@ -14,19 +16,21 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarMenuSub,
-  SidebarMenuSubItem,
-  SidebarMenuSubButton,
+  // SidebarMenuSub, // Not used currently
+  // SidebarMenuSubItem, // Not used currently
+  // SidebarMenuSubButton, // Not used currently
   SidebarGroup,
   SidebarGroupLabel,
-  SidebarGroupContent, 
+  SidebarGroupContent,
   useSidebar,
-  SidebarTrigger,
+  // SidebarTrigger, // Not used directly in AppSidebar anymore
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import type { UserProfile }  from "@/lib/types";
+import { auth } from "@/lib/firebase";
+import { useToast } from "@/hooks/use-toast";
 
 const USER_PROFILE_LS_KEY = 'userProfileData';
 
@@ -39,7 +43,7 @@ const MiniAppLogo = ({ className }: { className?: string }) => (
     strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
-    className={cn("h-6 w-6 text-primary", className)} // Adjusted size here
+    className={cn("h-6 w-6 text-primary", className)}
   >
     <rect width="8" height="8" x="3" y="3" rx="2"/>
     <path d="M7 11v4a2 2 0 0 0 2 2h4"/>
@@ -50,6 +54,8 @@ const MiniAppLogo = ({ className }: { className?: string }) => (
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { toast } = useToast();
   const { state, isMobile, setOpenMobile } = useSidebar();
   const [profileUsername, setProfileUsername] = React.useState<string | null>("User");
   const [profileEmail, setProfileEmail] = React.useState<string | null>("user@example.com");
@@ -59,22 +65,13 @@ export function AppSidebar() {
       const storedProfileString = localStorage.getItem(USER_PROFILE_LS_KEY);
       if (storedProfileString) {
         const profile = JSON.parse(storedProfileString) as UserProfile;
-        if (profile && profile.username) {
-          setProfileUsername(profile.username);
-        } else {
-          setProfileUsername("User"); 
-        }
-        if (profile && profile.email) {
-          setProfileEmail(profile.email);
-        } else {
-          setProfileEmail("user@example.com");
-        }
+        setProfileUsername(profile.username || "User");
+        setProfileEmail(profile.email || "user@example.com");
       } else {
         const defaultProfile: UserProfile = {
           id: 'default-user',
           username: 'Admin',
           email: 'admin@example.com',
-          password: 'password123', 
           usernameChanged: false,
         };
         localStorage.setItem(USER_PROFILE_LS_KEY, JSON.stringify(defaultProfile));
@@ -90,7 +87,6 @@ export function AppSidebar() {
 
   React.useEffect(() => {
     loadProfileData();
-    // Listen for custom event to reload profile data
     window.addEventListener('profileUpdated', loadProfileData);
     return () => {
       window.removeEventListener('profileUpdated', loadProfileData);
@@ -111,6 +107,27 @@ export function AppSidebar() {
   const handleLinkClick = () => {
     if (isMobile) {
       setOpenMobile(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+    try {
+      await signOut(auth);
+      toast({
+        title: "Logged Out",
+        description: "You have been successfully logged out.",
+      });
+      router.push('/signin');
+    } catch (error) {
+      console.error("Error signing out: ", error);
+      toast({
+        title: "Logout Failed",
+        description: "Could not log out. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -202,9 +219,23 @@ export function AppSidebar() {
               </SidebarMenuItem>
             </SidebarGroupContent>
           </SidebarGroup>
+          {/* Log Out Button */}
+          <SidebarMenuItem className="mt-auto absolute bottom-16 w-[calc(100%-1rem)] group-data-[collapsible=icon]:w-[calc(100%-0.5rem)]">
+            <Separator className="my-2" />
+             <SidebarMenuButton
+              onClick={handleSignOut}
+              tooltip={state === "collapsed" ? "Log Out" : undefined}
+              variant="default" // Or "destructive" for a red button
+              className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              <LogOut />
+              <span>Log Out</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="mt-auto">
         <Separator className="my-2" />
          <div className={cn(
             "flex items-center gap-3 p-2 transition-all",
@@ -215,7 +246,7 @@ export function AppSidebar() {
               <AvatarFallback>{profileUsername ? profileUsername.substring(0, 2).toUpperCase() : 'FP'}</AvatarFallback>
             </Avatar>
             <div className={cn(
-              "flex flex-col transition-[opacity] overflow-hidden", // Added overflow-hidden
+              "flex flex-col transition-[opacity] overflow-hidden",
               state === "collapsed" && "opacity-0 hidden"
             )}>
               <span className="text-sm font-medium text-sidebar-foreground text-ellipsis whitespace-nowrap">{profileUsername || "User"}</span>
@@ -226,4 +257,3 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
-
