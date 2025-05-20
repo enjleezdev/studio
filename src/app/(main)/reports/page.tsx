@@ -65,6 +65,7 @@ export default function ReportsPage() {
 
   const itemsInSelectedWarehouse = React.useMemo(() => {
     if (!selectedWarehouseId || selectedWarehouseId === "all_warehouses_option_value_placeholder_for_clear") {
+      // If "All Warehouses" is selected, or no warehouse is selected, show all non-archived items
       return allItems.filter(item => !item.isArchived);
     }
     return allItems.filter(item => item.warehouseId === selectedWarehouseId && !item.isArchived);
@@ -122,15 +123,15 @@ export default function ReportsPage() {
 
     if (selectedWarehouseId && selectedWarehouseId !== "all_warehouses_option_value_placeholder_for_clear") {
       transactions = transactions.filter(t => t.warehouseId === selectedWarehouseId);
+      // Only filter by item if a specific item (not "All Items") is selected *within* the selected warehouse
       if (selectedItemId && selectedItemId !== "all_items_option_value_placeholder_for_clear") {
         transactions = transactions.filter(t => t.itemId === selectedItemId);
       }
     } else if (selectedItemId && selectedItemId !== "all_items_option_value_placeholder_for_clear") {
-      // const itemToFilter = allItems.find(item => item.id === selectedItemId); // This logic might be complex without warehouse context
-      // if (itemToFilter) {
-         transactions = transactions.filter(t => t.itemId === selectedItemId);
-      // }
+      // If "All Warehouses" is effectively selected, but a specific item is chosen, filter by that item across all warehouses
+      transactions = transactions.filter(t => t.itemId === selectedItemId);
     }
+
 
     if (startDate) {
       const startOfDay = new Date(startDate);
@@ -143,7 +144,7 @@ export default function ReportsPage() {
       transactions = transactions.filter(t => new Date(t.timestamp) <= endOfDay);
     }
     setFilteredTransactions(transactions);
-  }, [selectedWarehouseId, selectedItemId, startDate, endDate, allFlattenedTransactions, allItems]);
+  }, [selectedWarehouseId, selectedItemId, startDate, endDate, allFlattenedTransactions]);
 
   const handleWarehouseChange = (warehouseId: string) => {
     if (warehouseId === "all_warehouses_option_value_placeholder_for_clear") {
@@ -201,7 +202,7 @@ export default function ReportsPage() {
       <PrintableTransactionsReport
         transactions={filteredTransactions}
         reportTitle={getCurrentReportTitle()}
-        printedBy="Admin User"
+        printedBy="Admin User" // Replace with actual user if available
         printDate={new Date()}
       />
     );
@@ -213,7 +214,7 @@ export default function ReportsPage() {
         if (document.body.contains(printableArea)) {
           document.body.removeChild(printableArea);
         }
-      }, 3000);
+      }, 3000); // Increased delay for PDF generation
     }, 250);
   };
 
@@ -227,12 +228,12 @@ export default function ReportsPage() {
       const itemForPrinting: Item = {
         id: report.itemId,
         name: report.itemName,
-        warehouseId: report.warehouseId,
-        quantity: report.historySnapshot.length > 0 ? report.historySnapshot[0].quantityAfter : 0, // Approximate quantity for display
+        warehouseId: report.warehouseId, // This might be missing if not explicitly stored
+        quantity: report.historySnapshot.length > 0 ? report.historySnapshot[0].quantityAfter : 0, // Approximate quantity
         createdAt: report.historySnapshot.length > 0 ? report.historySnapshot[report.historySnapshot.length - 1].timestamp : report.printedAt,
         updatedAt: report.historySnapshot.length > 0 ? report.historySnapshot[0].timestamp : report.printedAt,
         history: report.historySnapshot,
-        isArchived: true,
+        isArchived: true, // Since it's an archived report
       };
       root.render(
         <PrintableItemReport
@@ -247,7 +248,7 @@ export default function ReportsPage() {
         id: report.warehouseId,
         name: report.warehouseName,
         description: report.warehouseDescription || '',
-        createdAt: new Date().toISOString(), // Placeholder, not crucial for this re-print
+        createdAt: new Date().toISOString(), // Placeholder
         updatedAt: new Date().toISOString(), // Placeholder
         isArchived: true,
       };
@@ -274,7 +275,7 @@ export default function ReportsPage() {
         if (document.body.contains(printableArea)) {
           document.body.removeChild(printableArea);
         }
-      }, 3000);
+      }, 3000); // Increased delay
     }, 250);
   };
 
@@ -284,12 +285,12 @@ export default function ReportsPage() {
         title="Inventory Reports"
         description="View transaction history and stock levels."
       />
-      <div className="space-y-4">
+      <div className="space-y-6"> {/* This div wraps the dialog triggers */}
         <Dialog open={isOperationsHistoryDialogOpen} onOpenChange={setIsOperationsHistoryDialogOpen}>
           <DialogTrigger asChild>
             <Button variant="outline" className="w-full md:w-auto text-lg p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow">View Operations History</Button>
           </DialogTrigger>
-          <DialogContent className="w-[800px] h-[330px] max-w-none flex flex-col p-0 sm:rounded-lg">
+          <DialogContent className="w-[95vw] max-w-2xl h-[330px] flex flex-col p-0 sm:rounded-lg">
             <DialogHeader className="p-4 border-b sticky top-0 bg-background z-10">
               <DialogTitle>Operations History</DialogTitle>
             </DialogHeader>
@@ -404,11 +405,11 @@ export default function ReportsPage() {
               </div>
             </div>
             
-            <div className="flex-1 p-4 pt-2 overflow-hidden">
+            <div className="flex-1 p-4 pt-2 overflow-hidden"> {/* Content wrapper for table */}
               <h3 className="text-sm font-semibold mb-2 sticky left-0">
                   {getCurrentReportTitle()}
               </h3>
-              <div className="h-full w-full overflow-auto rounded-md border">
+              <div className="h-full w-full overflow-auto rounded-md border"> {/* Scrollable div for table */}
                 {isLoading ? (
                   <div className="flex items-center justify-center h-full"><LoadingSpinner size={32} /></div>
                 ) : filteredTransactions.length === 0 ? (
@@ -484,12 +485,12 @@ export default function ReportsPage() {
           <DialogTrigger asChild>
             <Button variant="outline" className="w-full md:w-auto text-lg p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow">View Archived Reports</Button>
           </DialogTrigger>
-          <DialogContent className="w-[800px] h-[330px] max-w-none flex flex-col p-0 sm:rounded-lg">
+          <DialogContent className="w-[95vw] max-w-2xl h-[330px] flex flex-col p-0 sm:rounded-lg">
             <DialogHeader className="p-4 border-b sticky top-0 bg-background z-10">
               <DialogTitle>Archived Printed Reports</DialogTitle>
             </DialogHeader>
-            <div className="flex-1 p-4 pt-2 overflow-hidden">
-              <div className="h-full w-full overflow-auto rounded-md border">
+            <div className="flex-1 p-4 pt-2 overflow-hidden"> {/* Content wrapper for table */}
+              <div className="h-full w-full overflow-auto rounded-md border"> {/* Scrollable div for table */}
                 {isLoading ? <div className="flex items-center justify-center h-full"><LoadingSpinner /></div> : (
                   archivedReports.length === 0 ? (
                     <EmptyState
@@ -540,4 +541,6 @@ export default function ReportsPage() {
     </>
   );
 }
+    
+
     
