@@ -3,7 +3,7 @@ export interface Warehouse {
   id: string;
   name: string;
   description?: string;
-  isArchived?: boolean; // Added for soft delete
+  isArchived?: boolean;
   createdAt: string; // ISO string date
   updatedAt: string; // ISO string date
 }
@@ -13,11 +13,11 @@ export interface Item {
   warehouseId: string;
   name: string;
   quantity: number;
-  location?: string; // Optional item location
+  location?: string;
   createdAt: string; // ISO string date
   updatedAt: string; // ISO string date
   history: HistoryEntry[];
-  isArchived?: boolean; // Added for soft delete
+  isArchived?: boolean;
 }
 
 export type HistoryEntryType =
@@ -40,22 +40,21 @@ export interface HistoryEntry {
 }
 
 export interface ArchivedReport {
-  id: string; // e.g., itemID-timestamp or warehouseID-timestamp
-  reportType?: 'ITEM' | 'WAREHOUSE' | 'TRANSACTIONS'; // Added TRANSACTIONS
-  warehouseId?: string; // Optional, for item/warehouse reports
-  warehouseName?: string; // Optional, for item/warehouse reports
-  warehouseDescription?: string; // Added for warehouse reports
-  itemId?: string; // Optional, only for item reports
-  itemName?: string; // Optional, only for item reports
-  printedBy: string; // User who printed
-  printedAt: string; // ISO string date of printing
-  historySnapshot?: HistoryEntry[]; // Optional, only for item reports
-  itemsSnapshot?: { name: string; quantity: number }[]; // Optional, only for warehouse reports
-  transactionsSnapshot?: FlattenedHistoryEntry[]; // Optional, only for transactions reports
-  reportTitleSnapshot?: string; // Optional, for transactions reports
+  id: string;
+  reportType?: 'ITEM' | 'WAREHOUSE' | 'TRANSACTIONS';
+  warehouseId?: string;
+  warehouseName?: string;
+  warehouseDescription?: string;
+  itemId?: string;
+  itemName?: string;
+  printedBy: string;
+  printedAt: string;
+  historySnapshot?: HistoryEntry[];
+  itemsSnapshot?: { name: string; quantity: number }[];
+  transactionsSnapshot?: FlattenedHistoryEntry[];
+  reportTitleSnapshot?: string;
 }
 
-// Added for PrintableTransactionsReport
 export interface FlattenedHistoryEntry extends HistoryEntry {
   itemName: string;
   warehouseName: string;
@@ -63,11 +62,11 @@ export interface FlattenedHistoryEntry extends HistoryEntry {
   warehouseId: string;
 }
 
-
 export interface UserProfile {
-  id: string;
+  id: string; // Firebase Auth UID
   username: string;
-  email?: string; // Added email field
-  password?: string; // Stored as plain text for simulation
-  usernameChanged: boolean;
+  email?: string; // Email from Firebase Auth
+  usernameChanged: boolean; // Tracks if username can still be changed
+  // Password is NOT stored here; it's managed by Firebase Auth service
+  createdAt?: any; // Firestore serverTimestamp
 }
