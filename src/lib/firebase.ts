@@ -1,24 +1,47 @@
-
+// Import the functions you need from the SDKs you need
 import { initializeApp, getApps, FirebaseApp } from "firebase/app";
 import { getFirestore, Firestore, enableMultiTabIndexedDbPersistence } from "firebase/firestore";
 import { getAuth, Auth } from "firebase/auth";
+import { getAnalytics, Analytics } from "firebase/analytics";
 
-// Your web app's Firebase configuration is now sourced from environment variables
+// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: "AIzaSyDwAmbnKucP8XgNR7VdLQRgnNSXu6gx2g0",
+  authDomain: "enjleez-tech-system.firebaseapp.com",
+  projectId: "enjleez-tech-system",
+  storageBucket: "enjleez-tech-system.firebasestorage.app",
+  messagingSenderId: "287769207619",
+  appId: "1:287769207619:web:02d8236f06ad00708445f6",
+  measurementId: "G-MX3LYK13CN"
 };
 
 let app: FirebaseApp;
 let db: Firestore;
 let auth: Auth;
+let analytics: Analytics | undefined; // Make analytics potentially undefined for SSR safety
 
-if (typeof window !== 'undefined' && getApps().length === 0) {
-  app = initializeApp(firebaseConfig);
+if (typeof window !== 'undefined') {
+  // This code runs only on the client-side
+  if (getApps().length === 0) {
+    // Initialize Firebase only if it hasn't been initialized yet
+    app = initializeApp(firebaseConfig);
+    try {
+      analytics = getAnalytics(app); // Initialize Analytics
+    } catch (e) {
+      console.warn("Firebase Analytics could not be initialized:", e);
+    }
+  } else {
+    app = getApps()[0];
+    // Ensure analytics is initialized if app was already initialized (e.g., by another part of the app or HMR)
+    if (!analytics) {
+      try {
+        analytics = getAnalytics(app);
+      } catch (e) {
+        console.warn("Firebase Analytics could not be re-initialized on existing app instance:", e);
+      }
+    }
+  }
+
   db = getFirestore(app);
   auth = getAuth(app);
 
@@ -36,15 +59,11 @@ if (typeof window !== 'undefined' && getApps().length === 0) {
         console.error("Firebase offline persistence failed with error: ", err);
       }
     });
-} else if (getApps().length > 0) {
-  app = getApps()[0];
-  db = getFirestore(app);
-  auth = getAuth(app);
 } else {
   // Fallback for server-side rendering or build steps where window is not defined
-  // Initialize a temporary app instance if needed, or handle appropriately
-  // For now, we'll re-initialize for SSR, but this might need refinement
-  // depending on how you use Firebase on the server.
+  // Initialize a temporary app instance if needed, or handle appropriately.
+  // Auth and Firestore can be initialized here for server-side operations if needed,
+  // but Analytics is client-side only.
   if (getApps().length === 0) {
     app = initializeApp(firebaseConfig);
   } else {
@@ -54,4 +73,4 @@ if (typeof window !== 'undefined' && getApps().length === 0) {
   auth = getAuth(app);
 }
 
-export { app, db, auth };
+export { app, db, auth, analytics };
