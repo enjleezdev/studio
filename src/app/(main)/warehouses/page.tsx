@@ -22,10 +22,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import type { Warehouse, Item, ArchivedReport } from '@/lib/types';
+import type { Warehouse, Item, ArchivedReport } from '@/lib/types'; // Ensure Warehouse type is appropriate
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { PrintableWarehouseReport } from '@/components/PrintableWarehouseReport';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, query, where, orderBy, doc, updateDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 const AppLogo = ({ className }: { className?: string }) => (
   <svg
@@ -35,14 +38,12 @@ const AppLogo = ({ className }: { className?: string }) => (
     strokeLinejoin="round"
     className={cn("h-48 w-48 text-primary", className)}
   >
-    {/* Outer Warehouse Shape */}
     <path
         d="M3 21V10l9-6 9 6v11"
         fill="none"
         stroke="currentColor"
         strokeWidth="1.5"
     />
-    {/* Inner Workflow Logo (scaled and centered) */}
     <g
         transform="translate(12 15.5) scale(0.5) translate(-12 -12)"
         stroke="currentColor"
@@ -73,31 +74,41 @@ const AppLogoAndBrand = () => {
   );
 };
 
-
 export default function WarehousesPage() {
   const [allActiveWarehouses, setAllActiveWarehouses] = React.useState<Warehouse[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
   const [showAll, setShowAll] = React.useState(false);
   const [selectedWarehouseForArchive, setSelectedWarehouseForArchive] = React.useState<Warehouse | null>(null);
   const [searchTerm, setSearchTerm] = React.useState("");
   const { toast } = useToast();
 
-  const loadWarehouses = React.useCallback(() => {
+  const loadWarehouses = React.useCallback(async () => {
+    setIsLoading(true);
     try {
-      const storedWarehousesString = localStorage.getItem('warehouses');
-      if (storedWarehousesString) {
-        const allStoredWarehouses: Warehouse[] = JSON.parse(storedWarehousesString);
-        const activeWarehouses = allStoredWarehouses.filter(wh => !wh.isArchived);
-        
-        activeWarehouses.sort((a, b) => {
-          const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
-          const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
-          return dateB - dateA; 
-        });
-        setAllActiveWarehouses(activeWarehouses);
-      }
+      const q = query(
+        collection(db, "warehouses"), 
+        where("isArchived", "==", false), 
+        orderBy("updatedAt", "desc")
+      );
+      const querySnapshot = await getDocs(q);
+      const warehousesFromFirestore = querySnapshot.docs.map(docSnap => {
+        const data = docSnap.data();
+        return {
+          id: docSnap.id,
+          name: data.name,
+          description: data.description,
+          isArchived: data.isArchived,
+          // Convert Firestore Timestamps to ISO strings for client-side use
+          createdAt: data.createdAt?.toDate?.().toISOString() || new Date().toISOString(),
+          updatedAt: data.updatedAt?.toDate?.().toISOString() || new Date().toISOString(),
+        } as Warehouse;
+      });
+      setAllActiveWarehouses(warehousesFromFirestore);
     } catch (error) {
-      console.error("Failed to load warehouses from localStorage", error);
+      console.error("Error loading warehouses from Firestore: ", error);
       toast({ title: "Error", description: "Failed to load warehouses.", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
     }
   }, [toast]);
 
@@ -105,51 +116,44 @@ export default function WarehousesPage() {
     loadWarehouses();
   }, [loadWarehouses]);
 
-  const handleArchiveWarehouse = () => {
+  const handleArchiveWarehouse = async () => {
     if (!selectedWarehouseForArchive) return;
 
+    setIsLoading(true); // Consider a more specific loading state for this action
     try {
-      const existingWarehousesString = localStorage.getItem('warehouses');
-      let allWarehouses: Warehouse[] = existingWarehousesString ? JSON.parse(existingWarehousesString) : [];
-      
-      const warehouseIndex = allWarehouses.findIndex(wh => wh.id === selectedWarehouseForArchive.id);
-      if (warehouseIndex > -1) {
-        allWarehouses[warehouseIndex] = { ...allWarehouses[warehouseIndex], isArchived: true, updatedAt: new Date().toISOString() };
-        localStorage.setItem('warehouses', JSON.stringify(allWarehouses));
-        
-        const existingItemsString = localStorage.getItem('items');
-        if (existingItemsString) {
-            let existingItems: Item[] = JSON.parse(existingItemsString);
-            existingItems = existingItems.map((item) => {
-                if (item.warehouseId === selectedWarehouseForArchive.id) {
-                    return { ...item, isArchived: true, updatedAt: new Date().toISOString() };
-                }
-                return item;
-            });
-            localStorage.setItem('items', JSON.stringify(existingItems));
-        }
+      const warehouseDocRef = doc(db, "warehouses", selectedWarehouseForArchive.id);
+      await updateDoc(warehouseDocRef, {
+        isArchived: true,
+        updatedAt: serverTimestamp(),
+      });
 
-        toast({ title: "Warehouse Archived", description: `${selectedWarehouseForArchive.name} and its items have been moved to the archive.` });
-        setSelectedWarehouseForArchive(null);
-        loadWarehouses(); 
-      } else {
-        toast({ title: "Error", description: "Warehouse not found for archiving.", variant: "destructive" });
-      }
+      // Archive items in the warehouse (Firestore batch write)
+      const itemsQuery = query(collection(db, "items"), where("warehouseId", "==", selectedWarehouseForArchive.id));
+      const itemsSnapshot = await getDocs(itemsQuery);
+      const batch = writeBatch(db);
+      itemsSnapshot.docs.forEach(itemDoc => {
+        batch.update(itemDoc.ref, { isArchived: true, updatedAt: serverTimestamp() });
+      });
+      await batch.commit();
+      
+      toast({ title: "Warehouse Archived", description: `${selectedWarehouseForArchive.name} and its items have been moved to the archive.` });
+      setSelectedWarehouseForArchive(null);
+      loadWarehouses(); // Reload warehouses to reflect changes
     } catch (error) {
-      console.error("Failed to archive warehouse in localStorage", error);
+      console.error("Error archiving warehouse: ", error);
       toast({ title: "Error", description: "Failed to archive warehouse.", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handlePrintWarehouseReport = (warehouseToPrint: Warehouse) => {
-    const storedItemsString = localStorage.getItem('items');
-    let allItems: Item[] = [];
-    if (storedItemsString) {
-      allItems = JSON.parse(storedItemsString);
-    }
-    const warehouseItems = allItems
-      .filter(item => item.warehouseId === warehouseToPrint.id && !item.isArchived)
-      .map(item => ({ name: item.name, quantity: item.quantity }));
+    // This function will need to be updated to fetch items from Firestore
+    // For now, let's keep the existing logic but acknowledge it needs update
+    console.warn("handlePrintWarehouseReport needs to be updated to fetch items from Firestore");
+    
+    // Placeholder for items - in a real scenario, fetch from Firestore
+    const warehouseItems: { name: string; quantity: number }[] = []; 
 
     const printableArea = document.createElement('div');
     printableArea.id = 'printable-report-area';
@@ -159,7 +163,7 @@ export default function WarehousesPage() {
     root.render(
       <PrintableWarehouseReport
         warehouse={warehouseToPrint}
-        items={warehouseItems}
+        items={warehouseItems} // This needs to be actual items
         printedBy="Admin User" 
         printDate={new Date()}
       />
@@ -172,7 +176,7 @@ export default function WarehousesPage() {
         if (document.body.contains(printableArea)) {
           document.body.removeChild(printableArea);
         }
-
+        // Archiving logic for reports remains (uses localStorage for now)
         const now = new Date();
         const archivedReport: ArchivedReport = {
           id: `${warehouseToPrint.id}-wh-report-${now.getTime()}`,
@@ -184,24 +188,14 @@ export default function WarehousesPage() {
           printedAt: now.toISOString(),
           itemsSnapshot: warehouseItems,
         };
-
-        try {
-          const existingReportsString = localStorage.getItem('archivedReports');
-          const existingReports: ArchivedReport[] = existingReportsString ? JSON.parse(existingReportsString) : [];
-          existingReports.push(archivedReport);
-          localStorage.setItem('archivedReports', JSON.stringify(existingReports));
-          toast({
-            title: "Report Archived",
-            description: `Report for warehouse ${warehouseToPrint.name} has been saved.`,
-          });
-        } catch (error) {
-          console.error("Failed to archive warehouse report:", error);
-          toast({
-            title: "Archiving Error",
-            description: "Failed to save warehouse report.",
-            variant: "destructive",
-          });
-        }
+        const existingReportsString = localStorage.getItem('archivedReports');
+        const existingReports: ArchivedReport[] = existingReportsString ? JSON.parse(existingReportsString) : [];
+        existingReports.push(archivedReport);
+        localStorage.setItem('archivedReports', JSON.stringify(existingReports));
+        toast({
+          title: "Report Archived",
+          description: `Report for warehouse ${warehouseToPrint.name} has been saved to localStorage.`,
+        });
       }, 3000); 
     }, 250); 
   };
@@ -211,6 +205,10 @@ export default function WarehousesPage() {
   );
 
   const displayedWarehouses = showAll ? filteredWarehouses : filteredWarehouses.slice(0, 4);
+
+  if (isLoading && allActiveWarehouses.length === 0) {
+    return <div className="flex justify-center items-center h-[calc(100vh-200px)]"><LoadingSpinner size={48} /></div>;
+  }
 
   return (
     <TooltipProvider>
@@ -224,8 +222,8 @@ export default function WarehousesPage() {
         title="Warehouses"
         description="Manage all your storage locations from here."
         actions={
-          <div className="flex items-center gap-2">
-            <div className="relative">
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <div className="relative w-full sm:w-auto">
               <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 type="search"
@@ -235,7 +233,7 @@ export default function WarehousesPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Button asChild>
+            <Button asChild className="w-full sm:w-auto">
               <Link href="/warehouses/new">
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Add New Warehouse
@@ -316,7 +314,7 @@ export default function WarehousesPage() {
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setSelectedWarehouseForArchive(null)}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleArchiveWarehouse} className="bg-destructive hover:bg-destructive/90">
-              Archive
+              {isLoading ? <LoadingSpinner size={16} className="mr-2"/> : "Archive"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

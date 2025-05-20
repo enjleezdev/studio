@@ -23,7 +23,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import type { Warehouse } from '@/lib/types';
+import type { Warehouse } from '@/lib/types'; // Ensure Warehouse type is appropriate
+import { db } from '@/lib/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 const warehouseFormSchema = z.object({
   name: z.string().min(2, {
@@ -34,10 +37,10 @@ const warehouseFormSchema = z.object({
 
 type WarehouseFormValues = z.infer<typeof warehouseFormSchema>;
 
-
 export default function NewWarehousePage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [isSaving, setIsSaving] = React.useState(false);
   const form = useForm<WarehouseFormValues>({
     resolver: zodResolver(warehouseFormSchema),
     defaultValues: {
@@ -46,29 +49,26 @@ export default function NewWarehousePage() {
     },
   });
 
-  function onSubmit(data: WarehouseFormValues) {
-    const now = new Date().toISOString();
-    const newWarehouse: Warehouse = {
-      id: Date.now().toString(),
+  async function onSubmit(data: WarehouseFormValues) {
+    setIsSaving(true);
+    const newWarehouseData = {
       name: data.name,
-      description: data.description,
+      description: data.description || '',
       isArchived: false,
-      createdAt: now,
-      updatedAt: now,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
     };
 
     try {
-      const existingWarehousesString = localStorage.getItem('warehouses');
-      const existingWarehouses: Warehouse[] = existingWarehousesString ? JSON.parse(existingWarehousesString) : [];
-      existingWarehouses.push(newWarehouse);
-      localStorage.setItem('warehouses', JSON.stringify(existingWarehouses));
-      
+      await addDoc(collection(db, "warehouses"), newWarehouseData);
       toast({ title: "Warehouse Created", description: `${data.name} has been successfully created.` });
       router.push('/warehouses');
     } catch (error) {
-      console.error("Failed to save warehouse to localStorage", error);
+      console.error("Error adding warehouse to Firestore: ", error);
       toast({ title: "Error", description: "Failed to save warehouse. Please try again.", variant: "destructive" });
+      setIsSaving(false);
     }
+    // No need to setIsSaving(false) on success as we are navigating away
   }
 
   return (
@@ -123,10 +123,11 @@ export default function NewWarehousePage() {
                 )}
               />
               <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => router.push('/warehouses')}>
+                <Button type="button" variant="outline" onClick={() => router.push('/warehouses')} disabled={isSaving}>
                   Cancel
                 </Button>
-                <Button type="submit">
+                <Button type="submit" disabled={isSaving}>
+                  {isSaving ? <LoadingSpinner size={16} className="mr-2" /> : null}
                   Save Warehouse
                 </Button>
               </div>
