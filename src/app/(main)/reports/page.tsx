@@ -147,7 +147,7 @@ export default function ReportsPage() {
       setSelectedWarehouseId(warehouseId);
     }
     if (warehouseId !== "all_warehouses_option_value_placeholder_for_clear") {
-        setSelectedItemId(null);
+        setSelectedItemId(null); // Reset item if warehouse changes to a specific one
     }
   };
 
@@ -170,6 +170,7 @@ export default function ReportsPage() {
         title += ` - ${selectedItmObj.name}`;
       }
     } else if (selectedItmObj) {
+      // This case handles "All Warehouses" but a specific item is selected
       title = `Transactions for ${selectedItmObj.name} (All Warehouses)`;
     }
 
@@ -225,11 +226,11 @@ export default function ReportsPage() {
         id: report.itemId,
         name: report.itemName,
         warehouseId: report.warehouseId,
-        quantity: report.historySnapshot.length > 0 ? report.historySnapshot[0].quantityAfter : 0,
+        quantity: report.historySnapshot.length > 0 ? report.historySnapshot[0].quantityAfter : 0, // Approximate current quantity
         createdAt: report.historySnapshot.length > 0 ? report.historySnapshot[report.historySnapshot.length - 1].timestamp : report.printedAt,
         updatedAt: report.historySnapshot.length > 0 ? report.historySnapshot[0].timestamp : report.printedAt,
         history: report.historySnapshot,
-        isArchived: true,
+        isArchived: true, // It's an archived report
       };
       root.render(
         <PrintableItemReport
@@ -244,9 +245,9 @@ export default function ReportsPage() {
         id: report.warehouseId,
         name: report.warehouseName,
         description: report.warehouseDescription || '',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        isArchived: true,
+        createdAt: new Date().toISOString(), // Placeholder, not stored in ArchivedReport
+        updatedAt: new Date().toISOString(), // Placeholder
+        isArchived: true, // It's an archived report
       };
       root.render(
         <PrintableWarehouseReport
@@ -281,11 +282,11 @@ export default function ReportsPage() {
         title="Inventory Reports"
         description="View transaction history and stock levels."
       />
-      <div className="space-y-6 w-full overflow-x-auto"> {/* Added w-full overflow-x-auto here */}
+      <div className="space-y-6 w-full overflow-x-auto">
         <Card className="w-[800px] h-[330px] overflow-hidden flex flex-col shrink-0">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>Operations History</CardTitle> {/* Changed title */}
+              <CardTitle>Operations History</CardTitle>
             </div>
             <Button variant="outline" onClick={handlePrintVisibleTransactions} disabled={filteredTransactions.length === 0 && !isLoading}>
               <Printer className="mr-2 h-4 w-4" />
