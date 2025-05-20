@@ -43,6 +43,7 @@ export interface ArchivedReport {
   reportType?: 'ITEM' | 'WAREHOUSE';
   warehouseId: string;
   warehouseName: string;
+  warehouseDescription?: string; // Added for warehouse reports
   itemId?: string; // Optional, only for item reports
   itemName?: string; // Optional, only for item reports
   printedBy: string; // User who printed
@@ -54,6 +55,8 @@ export interface ArchivedReport {
 export interface UserProfile {
   id: string;
   username: string;
+  email?: string; // Added email field
   password?: string; // Stored as plain text for simulation
   usernameChanged: boolean;
 }
+

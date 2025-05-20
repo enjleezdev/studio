@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import * as React from "react"; // Import React for useState and useEffect
+import * as React from "react"; 
 import { Home, Warehouse, Package, FileText, Archive as ArchiveIcon, UserCircle, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +19,7 @@ import {
   SidebarMenuSubButton,
   SidebarGroup,
   SidebarGroupLabel,
-  SidebarGroupContent, // Ensure this is imported
+  SidebarGroupContent, 
   useSidebar,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
@@ -30,12 +30,31 @@ import type { UserProfile }  from "@/lib/types";
 
 const USER_PROFILE_LS_KEY = 'userProfileData';
 
+const MiniAppLogo = ({ className }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={cn("h-6 w-6 text-primary", className)} // Adjusted size here
+  >
+    <rect width="8" height="8" x="3" y="3" rx="2"/>
+    <path d="M7 11v4a2 2 0 0 0 2 2h4"/>
+    <rect width="8" height="8" x="13" y="13" rx="2"/>
+  </svg>
+);
+
+
 export function AppSidebar() {
   const pathname = usePathname();
   const { state, isMobile, setOpenMobile } = useSidebar();
   const [profileUsername, setProfileUsername] = React.useState<string | null>("User");
+  const [profileEmail, setProfileEmail] = React.useState<string | null>("user@example.com");
 
-  React.useEffect(() => {
+  const loadProfileData = React.useCallback(() => {
     try {
       const storedProfileString = localStorage.getItem(USER_PROFILE_LS_KEY);
       if (storedProfileString) {
@@ -43,24 +62,40 @@ export function AppSidebar() {
         if (profile && profile.username) {
           setProfileUsername(profile.username);
         } else {
-          setProfileUsername("User"); // Fallback if username is not in profile
+          setProfileUsername("User"); 
+        }
+        if (profile && profile.email) {
+          setProfileEmail(profile.email);
+        } else {
+          setProfileEmail("user@example.com");
         }
       } else {
-         // Initialize a default profile if none exists, similar to profile page
         const defaultProfile: UserProfile = {
           id: 'default-user',
           username: 'Admin',
+          email: 'admin@example.com',
           password: 'password123', 
           usernameChanged: false,
         };
         localStorage.setItem(USER_PROFILE_LS_KEY, JSON.stringify(defaultProfile));
         setProfileUsername(defaultProfile.username);
+        setProfileEmail(defaultProfile.email);
       }
     } catch (error) {
       console.error('Failed to load user profile for sidebar:', error);
-      setProfileUsername("User"); // Fallback on error
+      setProfileUsername("User");
+      setProfileEmail("user@example.com");
     }
   }, []);
+
+  React.useEffect(() => {
+    loadProfileData();
+    // Listen for custom event to reload profile data
+    window.addEventListener('profileUpdated', loadProfileData);
+    return () => {
+      window.removeEventListener('profileUpdated', loadProfileData);
+    };
+  }, [loadProfileData]);
 
 
   const isActive = (path: string) => {
@@ -81,11 +116,17 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r">
-      <SidebarHeader className={cn(
+       <SidebarHeader className={cn(
         "flex items-center h-14",
         state === 'collapsed' ? 'justify-center px-2' : 'px-4 justify-start gap-2'
       )}>
-        {/* Header content (logo and name) removed as per user request to clear it */}
+        <MiniAppLogo />
+        <span className={cn(
+          "font-semibold text-primary text-base overflow-hidden text-ellipsis whitespace-nowrap",
+          state === 'collapsed' && 'opacity-0 hidden'
+        )}>
+          EZ Inventory
+        </span>
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
@@ -174,14 +215,15 @@ export function AppSidebar() {
               <AvatarFallback>{profileUsername ? profileUsername.substring(0, 2).toUpperCase() : 'FP'}</AvatarFallback>
             </Avatar>
             <div className={cn(
-              "flex flex-col transition-[opacity]",
+              "flex flex-col transition-[opacity] overflow-hidden", // Added overflow-hidden
               state === "collapsed" && "opacity-0 hidden"
             )}>
-              <span className="text-sm font-medium text-sidebar-foreground">{profileUsername || "User"}</span>
-              {/* Email line removed as UserProfile type does not contain email */}
+              <span className="text-sm font-medium text-sidebar-foreground text-ellipsis whitespace-nowrap">{profileUsername || "User"}</span>
+              <span className="text-xs text-muted-foreground text-ellipsis whitespace-nowrap">{profileEmail || "user@example.com"}</span>
             </div>
           </div>
       </SidebarFooter>
     </Sidebar>
   );
 }
+

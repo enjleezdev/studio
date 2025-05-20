@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import { Eye, EyeOff } from 'lucide-react';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 const USER_PROFILE_LS_KEY = 'userProfileData';
 
@@ -46,6 +47,7 @@ export default function ProfilePage() {
         const defaultProfile: UserProfile = {
           id: 'default-user',
           username: 'Admin',
+          email: 'admin@example.com', // Default email
           password: 'password123', // Default password for simulation
           usernameChanged: false,
         };
@@ -64,6 +66,7 @@ export default function ProfilePage() {
       const fallbackProfile: UserProfile = {
         id: 'default-user',
         username: 'Admin',
+        email: 'admin@example.com',
         password: 'password123',
         usernameChanged: false,
       };
@@ -95,6 +98,8 @@ export default function ProfilePage() {
       setUserProfile(updatedProfile);
       toast({ title: 'Success', description: 'Username updated successfully.' });
       setUsernameMessage('Username updated. You cannot change it again.');
+      // Manually trigger sidebar update if possible, or rely on next sidebar load
+      window.dispatchEvent(new CustomEvent('profileUpdated'));
     } catch (error) {
       console.error('Failed to save username:', error);
       toast({ title: 'Error', description: 'Could not save username.', variant: 'destructive' });
@@ -126,7 +131,7 @@ export default function ProfilePage() {
     const updatedProfile: UserProfile = { ...userProfile, password: newPassword };
     try {
       localStorage.setItem(USER_PROFILE_LS_KEY, JSON.stringify(updatedProfile));
-      setUserProfile(updatedProfile); // Update local state, though password isn't directly displayed
+      setUserProfile(updatedProfile); 
       toast({ title: 'Success', description: 'Password updated successfully.' });
       setCurrentPassword('');
       setNewPassword('');
@@ -139,7 +144,7 @@ export default function ProfilePage() {
   };
 
   if (isLoading) {
-    return <div className="flex justify-center items-center h-screen"><p>Loading profile...</p></div>;
+    return <div className="flex justify-center items-center h-screen"><LoadingSpinner size={32} /></div>;
   }
 
   if (!userProfile) {
@@ -152,14 +157,16 @@ export default function ProfilePage() {
       <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Username Settings</CardTitle>
-            <CardDescription>
-              {userProfile.usernameChanged
-                ? 'Your username has been set and cannot be changed again.'
-                : 'You can change your username once. This action is permanent.'}
-            </CardDescription>
+            <CardTitle>Account Information</CardTitle>
+            <CardDescription>View and manage your account details.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6">
+            <div>
+              <Label htmlFor="email">Email Address</Label>
+              <Input id="email" value={userProfile.email || 'N/A'} disabled className="mt-1 cursor-not-allowed" />
+              <p className="text-xs text-muted-foreground mt-1">Your email address cannot be changed.</p>
+            </div>
+            <Separator />
             <form onSubmit={handleUsernameChange} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="username">Username</Label>
@@ -170,6 +177,11 @@ export default function ProfilePage() {
                   disabled={userProfile.usernameChanged}
                   className={userProfile.usernameChanged ? 'cursor-not-allowed' : ''}
                 />
+                 <p className="text-xs text-muted-foreground">
+                  {userProfile.usernameChanged
+                    ? 'Your username has been set and cannot be changed again.'
+                    : 'You can change your username once. This action is permanent.'}
+                 </p>
               </div>
               {usernameMessage && (
                 <p className={`text-sm ${usernameMessage.includes('successfully') || usernameMessage.includes('updated') ? 'text-green-600' : 'text-destructive'}`}>
