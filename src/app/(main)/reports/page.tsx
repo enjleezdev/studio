@@ -99,6 +99,7 @@ export default function ReportsPage() {
 
       flattened.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setAllFlattenedTransactions(flattened);
+      setFilteredTransactions(flattened); // Initialize filteredTransactions
 
       const storedArchivedReportsString = localStorage.getItem('archivedReports');
       if (storedArchivedReportsString) {
@@ -121,11 +122,15 @@ export default function ReportsPage() {
         transactions = transactions.filter(t => t.itemId === selectedItemId);
       }
     } else if (selectedItemId && selectedItemId !== "all_items_option_value_placeholder_for_clear") {
+      // This case implies "All Warehouses" is selected, but a specific item is chosen.
+      // This might require ensuring itemsInSelectedWarehouse logic is correct for this.
+      // For now, we filter by itemId across all warehouses if no specific warehouse is selected.
       const itemToFilter = allItems.find(item => item.id === selectedItemId);
       if (itemToFilter) {
          transactions = transactions.filter(t => t.itemId === selectedItemId);
       }
     }
+
 
     if (startDate) {
       const startOfDay = new Date(startDate);
@@ -146,8 +151,14 @@ export default function ReportsPage() {
     } else {
       setSelectedWarehouseId(warehouseId);
     }
+    // When warehouse changes, reset item selection if the new warehouse is specific
+    // or if "All Warehouses" is selected (to allow broader item selection)
     if (warehouseId !== "all_warehouses_option_value_placeholder_for_clear") {
-        setSelectedItemId(null); // Reset item if warehouse changes to a specific one
+        setSelectedItemId(null);
+    } else {
+        // If "All Warehouses" is selected, we might want to allow selection from all items
+        // or reset item too. For now, let's reset item to ensure consistency.
+        setSelectedItemId(null);
     }
   };
 
@@ -170,7 +181,6 @@ export default function ReportsPage() {
         title += ` - ${selectedItmObj.name}`;
       }
     } else if (selectedItmObj) {
-      // This case handles "All Warehouses" but a specific item is selected
       title = `Transactions for ${selectedItmObj.name} (All Warehouses)`;
     }
 
@@ -226,11 +236,11 @@ export default function ReportsPage() {
         id: report.itemId,
         name: report.itemName,
         warehouseId: report.warehouseId,
-        quantity: report.historySnapshot.length > 0 ? report.historySnapshot[0].quantityAfter : 0, // Approximate current quantity
+        quantity: report.historySnapshot.length > 0 ? report.historySnapshot[0].quantityAfter : 0,
         createdAt: report.historySnapshot.length > 0 ? report.historySnapshot[report.historySnapshot.length - 1].timestamp : report.printedAt,
         updatedAt: report.historySnapshot.length > 0 ? report.historySnapshot[0].timestamp : report.printedAt,
         history: report.historySnapshot,
-        isArchived: true, // It's an archived report
+        isArchived: true,
       };
       root.render(
         <PrintableItemReport
@@ -245,9 +255,9 @@ export default function ReportsPage() {
         id: report.warehouseId,
         name: report.warehouseName,
         description: report.warehouseDescription || '',
-        createdAt: new Date().toISOString(), // Placeholder, not stored in ArchivedReport
-        updatedAt: new Date().toISOString(), // Placeholder
-        isArchived: true, // It's an archived report
+        createdAt: new Date().toISOString(), 
+        updatedAt: new Date().toISOString(), 
+        isArchived: true,
       };
       root.render(
         <PrintableWarehouseReport
@@ -282,18 +292,19 @@ export default function ReportsPage() {
         title="Inventory Reports"
         description="View transaction history and stock levels."
       />
-      <div className="space-y-6 w-full overflow-x-auto">
-        <Card className="w-[800px] h-[330px] overflow-hidden flex flex-col shrink-0">
+      <div className="space-y-6"> {/* Reverted: Removed w-full overflow-x-auto */}
+        <Card className="overflow-hidden w-full"> {/* Reverted: Card is w-full, not fixed width. Removed fixed height and flex properties */}
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle>Operations History</CardTitle>
+              {/* <CardDescription>Select filters to view specific transaction logs.</CardDescription> */}
             </div>
             <Button variant="outline" onClick={handlePrintVisibleTransactions} disabled={filteredTransactions.length === 0 && !isLoading}>
               <Printer className="mr-2 h-4 w-4" />
               Print Visible
             </Button>
           </CardHeader>
-          <CardContent className="flex-1 flex flex-col overflow-hidden p-6 pt-0">
+          <CardContent className="p-6 pt-0"> {/* Reverted: Removed flex properties */}
             <div className="flex flex-col gap-4 md:grid md:grid-cols-2 lg:grid-cols-4">
               <div>
                 <label htmlFor="warehouse-select" className="block text-sm font-medium text-foreground mb-1">
@@ -414,11 +425,11 @@ export default function ReportsPage() {
                 className="mt-4"
               />
             ) : (
-              <div className="flex-1 w-full overflow-auto rounded-md border mt-4">
+              <div className="h-[400px] w-full overflow-x-auto rounded-md border mt-4"> {/* Reverted: Removed flex-1 from class, maintained fixed height */}
                 <h3 className="text-lg font-semibold mb-2 sticky left-0 px-4 py-2 bg-background/80 dark:bg-card/70 backdrop-blur-sm z-10">
                   {getCurrentReportTitle()}
                 </h3>
-                <table className="text-xs border-collapse min-w-full">
+                <table className="text-xs border-collapse min-w-full"> {/* Ensured min-w-full */}
                   <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
                     <tr>
                       <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Date</th>
@@ -467,12 +478,12 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
 
-        <Card className="w-[800px] h-[330px] overflow-hidden flex flex-col shrink-0">
+        <Card className="overflow-hidden w-full"> {/* Reverted: Card is w-full, not fixed width. Removed fixed height and flex properties */}
           <CardHeader>
             <CardTitle>Archived Printed Reports</CardTitle>
             <CardDescription>View and re-print previously generated reports.</CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 flex flex-col overflow-hidden p-6 pt-0">
+          <CardContent className="p-6 pt-0"> {/* Reverted: Removed flex properties */}
             {isLoading ? <LoadingSpinner className="mx-auto my-6" /> : (
               archivedReports.length === 0 ? (
                 <EmptyState
@@ -482,8 +493,8 @@ export default function ReportsPage() {
                   className="mt-4"
                 />
               ) : (
-                <div className="flex-1 w-full overflow-auto rounded-md border">
-                  <table className="text-xs border-collapse min-w-full">
+                <div className="h-[400px] w-full overflow-x-auto rounded-md border"> {/* Reverted: Removed flex-1 from class, maintained fixed height */}
+                  <table className="text-xs border-collapse min-w-full"> {/* Ensured min-w-full */}
                     <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
                       <tr>
                         <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Report For</th>
@@ -524,3 +535,5 @@ export default function ReportsPage() {
   );
 }
 
+
+    
