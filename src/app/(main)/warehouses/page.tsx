@@ -7,7 +7,7 @@ import ReactDOM from 'react-dom/client';
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input"; // Added Input import
+import { Input } from "@/components/ui/input";
 import { PlusCircle, Home, Trash2, Printer, Eye, Repeat, Search } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import {
@@ -60,8 +60,8 @@ const AppLogoAndBrand = () => {
   return (
     <div className="flex flex-col items-center justify-center py-8 text-center">
       <AppLogo />
-      <h1 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-        EZ Inventory
+      <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl font-serif">
+        <span className="text-accent">EZ</span> <span className="text-red-400">Inventory</span>
       </h1>
       <p className="mt-2 text-xs text-muted-foreground">
         powered by{" "}
@@ -78,7 +78,7 @@ export default function WarehousesPage() {
   const [allActiveWarehouses, setAllActiveWarehouses] = React.useState<Warehouse[]>([]);
   const [showAll, setShowAll] = React.useState(false);
   const [selectedWarehouseForArchive, setSelectedWarehouseForArchive] = React.useState<Warehouse | null>(null);
-  const [searchTerm, setSearchTerm] = React.useState(""); // Added search term state
+  const [searchTerm, setSearchTerm] = React.useState("");
   const { toast } = useToast();
 
   const loadWarehouses = React.useCallback(() => {
@@ -91,7 +91,7 @@ export default function WarehousesPage() {
         activeWarehouses.sort((a, b) => {
           const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
           const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
-          return dateB - dateA; // Descending for most recent
+          return dateB - dateA; 
         });
         setAllActiveWarehouses(activeWarehouses);
       }
@@ -179,6 +179,7 @@ export default function WarehousesPage() {
           reportType: 'WAREHOUSE',
           warehouseId: warehouseToPrint.id,
           warehouseName: warehouseToPrint.name,
+          warehouseDescription: warehouseToPrint.description,
           printedBy: "Admin User",
           printedAt: now.toISOString(),
           itemsSnapshot: warehouseItems,
@@ -225,7 +226,7 @@ export default function WarehousesPage() {
         actions={
           <div className="flex items-center gap-2">
             <div className="relative">
-              <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 type="search"
                 placeholder="Search warehouses..."
@@ -258,11 +259,11 @@ export default function WarehousesPage() {
         <>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4">
             {displayedWarehouses.map((warehouse) => (
-              <Card key={warehouse.id} className="flex flex-col hover:shadow-xl transition-transform duration-300 hover:-translate-y-1 rounded-xl shadow-md">
+              <Card key={warehouse.id} className="flex flex-col rounded-xl shadow-md hover:shadow-xl transition-transform duration-300 hover:-translate-y-1">
                 <Link href={`/warehouses/${warehouse.id}`} className="flex flex-col flex-grow hover:bg-muted/50 transition-colors rounded-t-lg">
                   <CardHeader className="flex-grow p-5"> 
                     <div className="flex items-start justify-between">
-                      <CardTitle className="text-lg font-bold mb-2.5 break-words">{warehouse.name}</CardTitle> 
+                      <CardTitle className="font-bold text-lg mb-2.5 break-words">{warehouse.name}</CardTitle> 
                       <Home className="h-4 w-4 text-muted-foreground shrink-0" />
                     </div>
                     {warehouse.description && (
