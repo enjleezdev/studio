@@ -2,6 +2,12 @@
 'use client';
 
 import * as React from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { onAuthStateChanged, updateProfile, updatePassword, EmailAuthProvider, reauthenticateWithCredential, type User } from 'firebase/auth';
+import { doc, getDoc, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
+
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,134 +18,139 @@ import type { UserProfile } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import { Eye, EyeOff } from 'lucide-react';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { auth, db } from '@/lib/firebase';
+import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form'; // Added Form imports
 
-const USER_PROFILE_LS_KEY = 'userProfileData';
+const usernameFormSchema = z.object({
+  newUsername: z.string().min(3, { message: 'Username must be at least 3 characters.' }),
+});
+type UsernameFormValues = z.infer<typeof usernameFormSchema>;
+
+const passwordFormSchema = z.object({
+  currentPassword: z.string().min(1, { message: 'Current password is required.' }),
+  newPassword: z.string().min(6, { message: 'New password must be at least 6 characters.' }),
+  confirmNewPassword: z.string(),
+}).refine((data) => data.newPassword === data.confirmNewPassword, {
+  message: "New passwords don't match.",
+  path: ['confirmNewPassword'],
+});
+type PasswordFormValues = z.infer<typeof passwordFormSchema>;
+
 
 export default function ProfilePage() {
   const { toast } = useToast();
-  const [userProfile, setUserProfile] = React.useState<UserProfile | null>(null);
+  const [currentUser, setCurrentUser] = React.useState<User | null>(null);
+  const [userProfileData, setUserProfileData] = React.useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [isSavingUsername, setIsSavingUsername] = React.useState(false);
+  const [isSavingPassword, setIsSavingPassword] = React.useState(false);
 
-  // Username change state
-  const [newUsername, setNewUsername] = React.useState('');
-  const [usernameMessage, setUsernameMessage] = React.useState('');
-
-  // Password change state
-  const [currentPassword, setCurrentPassword] = React.useState('');
-  const [newPassword, setNewPassword] = React.useState('');
-  const [confirmNewPassword, setConfirmNewPassword] = React.useState('');
-  const [passwordMessage, setPasswordMessage] = React.useState('');
   const [showCurrentPassword, setShowCurrentPassword] = React.useState(false);
   const [showNewPassword, setShowNewPassword] = React.useState(false);
   const [showConfirmNewPassword, setShowConfirmNewPassword] = React.useState(false);
 
+  const usernameForm = useForm<UsernameFormValues>({
+    resolver: zodResolver(usernameFormSchema),
+    defaultValues: { newUsername: '' },
+  });
+
+  const passwordForm = useForm<PasswordFormValues>({
+    resolver: zodResolver(passwordFormSchema),
+    defaultValues: { currentPassword: '', newPassword: '', confirmNewPassword: '' },
+  });
 
   React.useEffect(() => {
-    setIsLoading(true);
-    try {
-      const storedProfileString = localStorage.getItem(USER_PROFILE_LS_KEY);
-      if (storedProfileString) {
-        const profile = JSON.parse(storedProfileString) as UserProfile;
-        setUserProfile(profile);
-        setNewUsername(profile.username); // Initialize with current username
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setIsLoading(true);
+      if (user) {
+        setCurrentUser(user);
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists()) {
+          const profile = userDocSnap.data() as UserProfile;
+          setUserProfileData(profile);
+          usernameForm.setValue('newUsername', profile.username || user.displayName || '');
+        } else {
+          // Should not happen if signup creates a profile, but as a fallback:
+          const defaultProfile: UserProfile = {
+            id: user.uid,
+            username: user.displayName || user.email?.split('@')[0] || 'User',
+            email: user.email || '',
+            usernameChanged: false,
+            createdAt: serverTimestamp(),
+          };
+          await setDoc(userDocRef, defaultProfile);
+          setUserProfileData(defaultProfile);
+          usernameForm.setValue('newUsername', defaultProfile.username);
+          console.warn("User profile created on-the-fly in profile page. This should ideally be handled at signup.");
+        }
       } else {
-        // Initialize a default profile if none exists
-        const defaultProfile: UserProfile = {
-          id: 'default-user',
-          username: 'Admin',
-          email: 'admin@example.com', // Default email
-          password: 'password123', // Default password for simulation
-          usernameChanged: false,
-        };
-        localStorage.setItem(USER_PROFILE_LS_KEY, JSON.stringify(defaultProfile));
-        setUserProfile(defaultProfile);
-        setNewUsername(defaultProfile.username);
+        setCurrentUser(null);
+        setUserProfileData(null);
+        // router.push('/signin'); // Or handle unauthenticated state
       }
-    } catch (error) {
-      console.error('Failed to load user profile:', error);
-      toast({
-        title: 'Error',
-        description: 'Could not load user profile. Using defaults.',
-        variant: 'destructive',
-      });
-      // Fallback to default if loading fails
-      const fallbackProfile: UserProfile = {
-        id: 'default-user',
-        username: 'Admin',
-        email: 'admin@example.com',
-        password: 'password123',
-        usernameChanged: false,
-      };
-      setUserProfile(fallbackProfile);
-      setNewUsername(fallbackProfile.username);
-    } finally {
       setIsLoading(false);
+    });
+    return () => unsubscribe();
+  }, [usernameForm]);
+
+  const handleUsernameChange = async (data: UsernameFormValues) => {
+    if (!currentUser || !userProfileData) return;
+
+    if (userProfileData.usernameChanged) {
+      toast({ title: 'Info', description: 'Username has already been changed and cannot be changed again.', variant: 'default' });
+      return;
     }
-  }, [toast]);
-
-  const handleUsernameChange = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setUsernameMessage('');
-    if (!userProfile) return;
-
-    if (userProfile.usernameChanged) {
-      setUsernameMessage('Username has already been changed and cannot be changed again.');
+    if (data.newUsername === userProfileData.username) {
+      toast({ title: 'Info', description: 'New username is the same as the current one.', variant: 'default' });
       return;
     }
 
-    if (!newUsername.trim()) {
-      setUsernameMessage('Username cannot be empty.');
-      return;
-    }
-
-    const updatedProfile: UserProfile = { ...userProfile, username: newUsername.trim(), usernameChanged: true };
+    setIsSavingUsername(true);
     try {
-      localStorage.setItem(USER_PROFILE_LS_KEY, JSON.stringify(updatedProfile));
-      setUserProfile(updatedProfile);
+      await updateProfile(currentUser, { displayName: data.newUsername });
+      const userDocRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(userDocRef, {
+        username: data.newUsername,
+        usernameChanged: true,
+        updatedAt: serverTimestamp(),
+      });
+
+      setUserProfileData((prev) => prev ? { ...prev, username: data.newUsername, usernameChanged: true } : null);
+      usernameForm.setValue('newUsername', data.newUsername);
       toast({ title: 'Success', description: 'Username updated successfully.' });
-      setUsernameMessage('Username updated. You cannot change it again.');
-      // Manually trigger sidebar update if possible, or rely on next sidebar load
-      window.dispatchEvent(new CustomEvent('profileUpdated'));
-    } catch (error) {
+      window.dispatchEvent(new CustomEvent('profileUpdated')); // Notify sidebar
+    } catch (error: any) {
       console.error('Failed to save username:', error);
-      toast({ title: 'Error', description: 'Could not save username.', variant: 'destructive' });
+      toast({ title: 'Error', description: error.message || 'Could not save username.', variant: 'destructive' });
+    } finally {
+      setIsSavingUsername(false);
     }
   };
 
-  const handlePasswordChange = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setPasswordMessage('');
-    if (!userProfile) return;
-
-    if (currentPassword !== (userProfile.password || '')) {
-      setPasswordMessage('Current password does not match.');
-      return;
+  const handlePasswordChange = async (data: PasswordFormValues) => {
+    if (!currentUser || !currentUser.email) {
+        toast({ title: 'Error', description: 'User not authenticated or email missing.', variant: 'destructive' });
+        return;
     }
-    if (!newPassword) {
-      setPasswordMessage('New password cannot be empty.');
-      return;
-    }
-    if (newPassword.length < 6) {
-      setPasswordMessage('New password must be at least 6 characters long.');
-      return;
-    }
-    if (newPassword !== confirmNewPassword) {
-      setPasswordMessage('New passwords do not match.');
-      return;
-    }
-
-    const updatedProfile: UserProfile = { ...userProfile, password: newPassword };
+    setIsSavingPassword(true);
     try {
-      localStorage.setItem(USER_PROFILE_LS_KEY, JSON.stringify(updatedProfile));
-      setUserProfile(updatedProfile); 
+      const credential = EmailAuthProvider.credential(currentUser.email, data.currentPassword);
+      await reauthenticateWithCredential(currentUser, credential);
+      await updatePassword(currentUser, data.newPassword);
       toast({ title: 'Success', description: 'Password updated successfully.' });
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmNewPassword('');
-      setPasswordMessage('Password changed successfully.');
-    } catch (error) {
-      console.error('Failed to save password:', error);
-      toast({ title: 'Error', description: 'Could not save password.', variant: 'destructive' });
+      passwordForm.reset();
+    } catch (error: any) {
+      console.error('Failed to change password:', error);
+      let description = 'Could not update password. Please try again.';
+      if (error.code === 'auth/wrong-password') {
+        description = 'Incorrect current password.';
+      } else if (error.code === 'auth/weak-password') {
+        description = 'The new password is too weak.';
+      }
+      toast({ title: 'Error', description: description, variant: 'destructive' });
+    } finally {
+      setIsSavingPassword(false);
     }
   };
 
@@ -147,8 +158,8 @@ export default function ProfilePage() {
     return <div className="flex justify-center items-center h-screen"><LoadingSpinner size={32} /></div>;
   }
 
-  if (!userProfile) {
-    return <div className="flex justify-center items-center h-screen"><p>Could not load profile.</p></div>;
+  if (!currentUser || !userProfileData) {
+    return <div className="flex justify-center items-center h-screen"><p>Please sign in to view your profile.</p></div>;
   }
 
   return (
@@ -163,35 +174,43 @@ export default function ProfilePage() {
           <CardContent className="space-y-6">
             <div>
               <Label htmlFor="email">Email Address</Label>
-              <Input id="email" value={userProfile.email || 'N/A'} disabled className="mt-1 cursor-not-allowed" />
-              <p className="text-xs text-muted-foreground mt-1">Your email address cannot be changed.</p>
+              <Input id="email" value={currentUser.email || 'N/A'} disabled className="mt-1 cursor-not-allowed" />
+              <p className="text-xs text-muted-foreground mt-1">Your email address cannot be changed here.</p>
             </div>
             <Separator />
-            <form onSubmit={handleUsernameChange} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
-                <Input
-                  id="username"
-                  value={newUsername}
-                  onChange={(e) => setNewUsername(e.target.value)}
-                  disabled={userProfile.usernameChanged}
-                  className={userProfile.usernameChanged ? 'cursor-not-allowed' : ''}
+            <Form {...usernameForm}>
+              <form onSubmit={usernameForm.handleSubmit(handleUsernameChange)} className="space-y-4">
+                <FormField
+                  control={usernameForm.control}
+                  name="newUsername"
+                  render={({ field }) => (
+                    <FormItem>
+                      <Label htmlFor="username">Username</Label>
+                      <FormControl>
+                        <Input
+                          id="username"
+                          {...field}
+                          disabled={userProfileData.usernameChanged || isSavingUsername}
+                          className={userProfileData.usernameChanged ? 'cursor-not-allowed' : ''}
+                        />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground">
+                        {userProfileData.usernameChanged
+                          ? 'Your username has been set and cannot be changed again.'
+                          : 'You can change your username once. This action is permanent.'}
+                      </p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-                 <p className="text-xs text-muted-foreground">
-                  {userProfile.usernameChanged
-                    ? 'Your username has been set and cannot be changed again.'
-                    : 'You can change your username once. This action is permanent.'}
-                 </p>
-              </div>
-              {usernameMessage && (
-                <p className={`text-sm ${usernameMessage.includes('successfully') || usernameMessage.includes('updated') ? 'text-green-600' : 'text-destructive'}`}>
-                  {usernameMessage}
-                </p>
-              )}
-              {!userProfile.usernameChanged && (
-                <Button type="submit">Change Username</Button>
-              )}
-            </form>
+                {!userProfileData.usernameChanged && (
+                  <Button type="submit" disabled={isSavingUsername}>
+                    {isSavingUsername ? <LoadingSpinner size={16} className="mr-2" /> : null}
+                    Change Username
+                  </Button>
+                )}
+              </form>
+            </Form>
           </CardContent>
         </Card>
 
@@ -201,80 +220,109 @@ export default function ProfilePage() {
             <CardDescription>Change your account password.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handlePasswordChange} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="currentPassword">Current Password</Label>
-                 <div className="relative">
-                  <Input
-                    id="currentPassword"
-                    type={showCurrentPassword ? "text" : "password"}
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    placeholder="Enter current password"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7"
-                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  >
-                    {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="newPassword">New Password</Label>
-                 <div className="relative">
-                    <Input
-                        id="newPassword"
-                        type={showNewPassword ? "text" : "password"}
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="Enter new password (min. 6 characters)"
-                    />
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7"
-                        onClick={() => setShowNewPassword(!showNewPassword)}
-                    >
-                        {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmNewPassword">Confirm New Password</Label>
-                 <div className="relative">
-                    <Input
-                        id="confirmNewPassword"
-                        type={showConfirmNewPassword ? "text" : "password"}
-                        value={confirmNewPassword}
-                        onChange={(e) => setConfirmNewPassword(e.target.value)}
-                        placeholder="Confirm new password"
-                    />
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7"
-                        onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
-                    >
-                        {showConfirmNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                </div>
-              </div>
-              {passwordMessage && (
-                <p className={`text-sm ${passwordMessage.includes('successfully') ? 'text-green-600' : 'text-destructive'}`}>
-                  {passwordMessage}
-                </p>
-              )}
-              <Button type="submit">Change Password</Button>
-            </form>
+            <Form {...passwordForm}>
+              <form onSubmit={passwordForm.handleSubmit(handlePasswordChange)} className="space-y-4">
+                <FormField
+                  control={passwordForm.control}
+                  name="currentPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <Label htmlFor="currentPassword">Current Password</Label>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            id="currentPassword"
+                            type={showCurrentPassword ? "text" : "password"}
+                            placeholder="Enter current password"
+                            {...field}
+                            disabled={isSavingPassword}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-7"
+                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                          >
+                            {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={passwordForm.control}
+                  name="newPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <Label htmlFor="newPassword">New Password</Label>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                              id="newPassword"
+                              type={showNewPassword ? "text" : "password"}
+                              placeholder="Enter new password (min. 6 characters)"
+                              {...field}
+                              disabled={isSavingPassword}
+                          />
+                          <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-1 top-1/2 -translate-y-1/2 h-7"
+                              onClick={() => setShowNewPassword(!showNewPassword)}
+                          >
+                              {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                      </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={passwordForm.control}
+                  name="confirmNewPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <Label htmlFor="confirmNewPassword">Confirm New Password</Label>
+                      <FormControl>
+                        <div className="relative">
+                            <Input
+                                id="confirmNewPassword"
+                                type={showConfirmNewPassword ? "text" : "password"}
+                                placeholder="Confirm new password"
+                                {...field}
+                                disabled={isSavingPassword}
+                            />
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="absolute right-1 top-1/2 -translate-y-1/2 h-7"
+                                onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
+                            >
+                                {showConfirmNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                        </div>
+                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" disabled={isSavingPassword}>
+                  {isSavingPassword ? <LoadingSpinner size={16} className="mr-2" /> : null}
+                  Change Password
+                </Button>
+              </form>
+            </Form>
           </CardContent>
         </Card>
       </div>
     </>
   );
 }
+
+    

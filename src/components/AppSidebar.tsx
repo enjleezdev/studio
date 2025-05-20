@@ -5,7 +5,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import * as React from "react";
 import { Home, Warehouse, Package, FileText, Archive as ArchiveIcon, UserCircle, Bot, LogOut } from "lucide-react";
-import { signOut } from "firebase/auth";
+import { onAuthStateChanged, signOut, type User as FirebaseUser } from "firebase/auth"; // Import User type
+import { doc, getDoc } from "firebase/firestore";
+
 
 import { Button } from "@/components/ui/button";
 import {
@@ -24,73 +26,56 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import type { UserProfile }  from "@/lib/types";
-import { auth } from "@/lib/firebase";
+import type { UserProfile }  from "@/lib/types"; // Keep this for structure if needed elsewhere
+import { auth, db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
-
-const USER_PROFILE_LS_KEY = 'userProfileData';
-
-// MiniAppLogo definition is kept in case it's used elsewhere or for future adjustments,
-// but it's not rendered in the SidebarHeader in this version.
-const MiniAppLogo = ({ className }: { className?: string }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor" 
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={cn("h-6 w-6", className)} 
-  >
-    <rect width="8" height="8" x="3" y="3" rx="2"/>
-    <path d="M7 11v4a2 2 0 0 0 2 2h4"/>
-    <rect width="8" height="8" x="13" y="13" rx="2"/>
-  </svg>
-);
-
 
 export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
   const { state, isMobile, setOpenMobile } = useSidebar();
+  const [currentUser, setCurrentUser] = React.useState<FirebaseUser | null>(null);
   const [profileUsername, setProfileUsername] = React.useState<string | null>("User");
   const [profileEmail, setProfileEmail] = React.useState<string | null>("user@example.com");
 
-  const loadProfileData = React.useCallback(() => {
-    try {
-      const storedProfileString = localStorage.getItem(USER_PROFILE_LS_KEY);
-      if (storedProfileString) {
-        const profile = JSON.parse(storedProfileString) as UserProfile;
-        setProfileUsername(profile.username || "User");
-        setProfileEmail(profile.email || "user@example.com");
+
+  const loadProfileData = React.useCallback(async (user: FirebaseUser | null) => {
+    if (user) {
+      setCurrentUser(user);
+      setProfileEmail(user.email || "user@example.com");
+
+      // Attempt to get username from Firestore first, then fallback to displayName or email part
+      const userDocRef = doc(db, "users", user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+      if (userDocSnap.exists()) {
+        const firestoreProfile = userDocSnap.data() as UserProfile;
+        setProfileUsername(firestoreProfile.username || user.displayName || user.email?.split('@')[0] || "User");
       } else {
-        const defaultProfile: UserProfile = {
-          id: 'default-user', 
-          username: 'Admin',
-          email: 'admin@example.com', 
-          usernameChanged: false,
-          createdAt: new Date().toISOString(), 
-        };
-        localStorage.setItem(USER_PROFILE_LS_KEY, JSON.stringify(defaultProfile));
-        setProfileUsername(defaultProfile.username);
-        setProfileEmail(defaultProfile.email);
+        setProfileUsername(user.displayName || user.email?.split('@')[0] || "User");
       }
-    } catch (error) {
-      console.error('Failed to load user profile for sidebar:', error);
-      setProfileUsername("User"); 
-      setProfileEmail("user@example.com"); 
+
+    } else {
+      setCurrentUser(null);
+      setProfileUsername("User");
+      setProfileEmail("user@example.com");
     }
   }, []);
 
   React.useEffect(() => {
-    loadProfileData();
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      loadProfileData(user);
+    });
+    
     const handleProfileUpdate = () => {
-      loadProfileData();
+      if (auth.currentUser) {
+        loadProfileData(auth.currentUser);
+      }
     };
     window.addEventListener('profileUpdated', handleProfileUpdate);
+
     return () => {
+      unsubscribe();
       window.removeEventListener('profileUpdated', handleProfileUpdate);
     };
   }, [loadProfileData]);
@@ -136,10 +121,10 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r">
        <SidebarHeader className={cn(
-        "flex items-center h-14", // Keep height for structure
+        "flex items-center h-14", 
         state === 'collapsed' ? 'justify-center px-2' : 'px-4 justify-start'
       )}>
-        {/* Logo and name removed as per request */}
+        {/* Empty as per user request to remove logo/name from here */}
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
@@ -215,7 +200,7 @@ export function AppSidebar() {
               </SidebarMenuItem>
             </SidebarGroupContent>
           </SidebarGroup>
-          {/* Log Out Button */}
+          
           <SidebarMenuItem className="mt-auto absolute bottom-16 w-[calc(100%-1rem)] group-data-[collapsible=icon]:w-[calc(100%-0.5rem)]">
             <Separator className="my-2" />
              <SidebarMenuButton
@@ -238,8 +223,8 @@ export function AppSidebar() {
             state === "collapsed" && "justify-center"
           )}>
             <Avatar className="size-8">
-              <AvatarImage src="https://placehold.co/40x40.png" alt="User" data-ai-hint="user avatar"/>
-              <AvatarFallback>{profileUsername ? profileUsername.substring(0, 2).toUpperCase() : 'FP'}</AvatarFallback>
+              <AvatarImage src={currentUser?.photoURL || "https://placehold.co/40x40.png"} alt="User" data-ai-hint="user avatar"/>
+              <AvatarFallback>{profileUsername ? profileUsername.substring(0, 2).toUpperCase() : 'U'}</AvatarFallback>
             </Avatar>
             <div className={cn(
               "flex flex-col transition-[opacity] overflow-hidden",
@@ -253,3 +238,5 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
+
+    
