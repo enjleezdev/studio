@@ -6,7 +6,7 @@ import ReactDOM from 'react-dom/client';
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Printer, Archive, Package as PackageIcon, CalendarIcon } from "lucide-react";
+import { Printer, Archive as ArchiveIcon, Package as PackageIcon, CalendarIcon } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { useToast } from "@/hooks/use-toast";
 import type { Warehouse, Item, HistoryEntry, ArchivedReport } from '@/lib/types';
@@ -121,8 +121,13 @@ export default function ReportsPage() {
         transactions = transactions.filter(t => t.itemId === selectedItemId);
       }
     } else if (selectedItemId && selectedItemId !== "all_items_option_value_placeholder_for_clear") {
-      transactions = transactions.filter(t => t.itemId === selectedItemId);
+      // Filter by item only if no specific warehouse is selected (or "All Warehouses" is implied)
+      const itemToFilter = allItems.find(item => item.id === selectedItemId);
+      if (itemToFilter) {
+         transactions = transactions.filter(t => t.itemId === selectedItemId);
+      }
     }
+
 
     if (startDate) {
       const startOfDay = new Date(startDate);
@@ -135,7 +140,7 @@ export default function ReportsPage() {
       transactions = transactions.filter(t => new Date(t.timestamp) <= endOfDay);
     }
     setFilteredTransactions(transactions);
-  }, [selectedWarehouseId, selectedItemId, startDate, endDate, allFlattenedTransactions]);
+  }, [selectedWarehouseId, selectedItemId, startDate, endDate, allFlattenedTransactions, allItems]);
 
   const handleWarehouseChange = (warehouseId: string) => {
     if (warehouseId === "all_warehouses_option_value_placeholder_for_clear") {
@@ -143,7 +148,11 @@ export default function ReportsPage() {
     } else {
       setSelectedWarehouseId(warehouseId);
     }
-    setSelectedItemId(null);
+    // Reset item selection when warehouse changes, unless "All Warehouses" is selected
+    // If "All Warehouses" is selected, keep the item filter if one was active.
+    if (warehouseId !== "all_warehouses_option_value_placeholder_for_clear") {
+        setSelectedItemId(null);
+    }
   };
 
   const handleItemChange = (itemId: string) => {
@@ -167,6 +176,7 @@ export default function ReportsPage() {
     } else if (selectedItmObj) {
       title = `Transactions for ${selectedItmObj.name} (All Warehouses)`;
     }
+
 
     if (startDate || endDate) {
       let dateRange = '';
@@ -471,7 +481,7 @@ export default function ReportsPage() {
             {isLoading ? <LoadingSpinner className="mx-auto my-6" /> : (
               archivedReports.length === 0 ? (
                 <EmptyState
-                  IconComponent={Archive}
+                  IconComponent={ArchiveIcon}
                   title="No Archived Reports"
                   description="Reports you print will be archived here for future reference."
                 />
@@ -517,3 +527,4 @@ export default function ReportsPage() {
     </>
   );
 }
+
