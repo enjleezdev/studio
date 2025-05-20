@@ -34,15 +34,15 @@ const SignInLogo = ({ className }: { className?: string }) => (
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
-    strokeWidth="1.5"
+    strokeWidth="1.5" // Matched strokeWidth
     strokeLinecap="round"
     strokeLinejoin="round"
     className={cn("h-24 w-24 text-primary", className)} // Adjusted size for sign-in page
   >
-    {/* Outer house outline */}
+    {/* Outer house outline - same as AppLogo */}
     <path d="M3 21V10l9-6 9 6v11" />
-    {/* Inner workflow icon (simplified representation of connected rounded squares) */}
-    <g transform="translate(0 -1) scale(0.7) translate(4.25 4.25)"> {/* Scaled down and repositioned */}
+    {/* Inner workflow icon (simplified representation of connected rounded squares) - same as AppLogo */}
+    <g transform="translate(0 -1) scale(0.7) translate(4.25 4.25)"> {/* Scaled down and repositioned to match AppLogo's internal scaling */}
       <rect x="7" y="10" width="4.5" height="4.5" rx="1" strokeWidth="1.5"/>
       <rect x="12.5" y="14.5" width="4.5" height="4.5" rx="1" strokeWidth="1.5"/>
       <path d="M9.25 14.5v-2a1 1 0 0 1 1-1h2.25" strokeWidth="1.5"/>
@@ -101,7 +101,7 @@ export default function SignInPage() {
 
   return (
     <Card className="w-full">
-      <CardHeader className="space-y-1 text-center items-center pb-4"> {/* Added items-center and pb-4 */}
+      <CardHeader className="space-y-1 text-center items-center pb-4">
         <SignInLogo />
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl font-serif pt-2">
           <span className="text-accent">EZ</span> <span className="text-red-400">Inventory</span>
@@ -117,7 +117,6 @@ export default function SignInPage() {
             ENJLEEZ TECH
           </a>
         </p>
-        {/* Removed CardTitle and CardDescription for "Sign In to EZ Inventory" */}
       </CardHeader>
       <CardContent>
         <Form {...form}>
