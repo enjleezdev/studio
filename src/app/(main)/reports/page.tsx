@@ -5,6 +5,7 @@ import * as React from 'react';
 import ReactDOM from 'react-dom/client';
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Printer, Archive as ArchiveIcon, Package as PackageIcon, CalendarIcon } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { useToast } from "@/hooks/use-toast";
@@ -24,13 +25,6 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { PrintableItemReport } from '@/components/PrintableItemReport';
 import { PrintableWarehouseReport } from '@/components/PrintableWarehouseReport';
 import { PrintableTransactionsReport } from '@/components/PrintableTransactionsReport';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 
 interface FlattenedHistoryEntry extends HistoryEntry {
   itemName: string;
@@ -64,9 +58,6 @@ export default function ReportsPage() {
 
   const [isLoading, setIsLoading] = React.useState(true);
   const { toast } = useToast();
-
-  const [isOperationsHistoryDialogOpen, setIsOperationsHistoryDialogOpen] = React.useState(false);
-  const [isArchivedReportsDialogOpen, setIsArchivedReportsDialogOpen] = React.useState(false);
 
   const itemsInSelectedWarehouse = React.useMemo(() => {
     if (!selectedWarehouseId || selectedWarehouseId === "all_warehouses_option_value_placeholder_for_clear") {
@@ -294,27 +285,25 @@ export default function ReportsPage() {
         description="View transaction history and stock levels."
       />
       <div className="space-y-6">
-        <Dialog open={isOperationsHistoryDialogOpen} onOpenChange={setIsOperationsHistoryDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline" className="w-full md:w-auto">View Operations History</Button>
-          </DialogTrigger>
-          <DialogContent className="w-[800px] h-[330px] max-w-none flex flex-col p-0 sm:rounded-lg">
-            <DialogHeader className="p-6 pb-2 border-b">
-              <div className="flex justify-between items-center">
-                <DialogTitle>Operations History</DialogTitle>
-                <Button variant="outline" onClick={handlePrintVisibleTransactions} disabled={filteredTransactions.length === 0 && !isLoading} size="sm">
-                  <Printer className="mr-2 h-4 w-4" />
-                  Print Visible
-                </Button>
-              </div>
-            </DialogHeader>
-            <div className="p-6 flex flex-col gap-4 md:grid md:grid-cols-2 lg:grid-cols-4 border-b">
+        <Card className="overflow-hidden">
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle>Operations History</CardTitle>
+              <Button variant="outline" onClick={handlePrintVisibleTransactions} disabled={filteredTransactions.length === 0 && !isLoading} size="sm">
+                <Printer className="mr-2 h-4 w-4" />
+                Print Visible
+              </Button>
+            </div>
+            {/* <CardDescription>Filter and view item transactions.</CardDescription> */}
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-4 md:grid md:grid-cols-2 lg:grid-cols-4 mb-6">
               <div>
-                <label htmlFor="warehouse-select-modal" className="block text-sm font-medium text-foreground mb-1">
+                <label htmlFor="warehouse-select" className="block text-sm font-medium text-foreground mb-1">
                   Select Warehouse
                 </label>
                 <Select onValueChange={handleWarehouseChange} value={selectedWarehouseId || "all_warehouses_option_value_placeholder_for_clear"}>
-                  <SelectTrigger id="warehouse-select-modal" className="w-full">
+                  <SelectTrigger id="warehouse-select" className="w-full">
                     <SelectValue placeholder="All Warehouses" />
                   </SelectTrigger>
                   <SelectContent>
@@ -328,7 +317,7 @@ export default function ReportsPage() {
                 </Select>
               </div>
               <div>
-                <label htmlFor="item-select-modal" className="block text-sm font-medium text-foreground mb-1">
+                <label htmlFor="item-select" className="block text-sm font-medium text-foreground mb-1">
                   Select Item
                 </label>
                 <Select
@@ -336,7 +325,7 @@ export default function ReportsPage() {
                   value={selectedItemId || "all_items_option_value_placeholder_for_clear"}
                   disabled={itemsInSelectedWarehouse.length === 0 && !!selectedWarehouseId && selectedWarehouseId !== "all_warehouses_option_value_placeholder_for_clear"}
                 >
-                  <SelectTrigger id="item-select-modal" className="w-full">
+                  <SelectTrigger id="item-select" className="w-full">
                     <SelectValue placeholder={
                       !selectedWarehouseId || selectedWarehouseId === "all_warehouses_option_value_placeholder_for_clear"
                         ? "All Items (Any Warehouse)"
@@ -358,13 +347,13 @@ export default function ReportsPage() {
                 </Select>
               </div>
               <div>
-                <label htmlFor="start-date-picker-modal" className="block text-sm font-medium text-foreground mb-1">
+                <label htmlFor="start-date-picker" className="block text-sm font-medium text-foreground mb-1">
                   Start Date
                 </label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
-                      id="start-date-picker-modal"
+                      id="start-date-picker"
                       variant={"outline"}
                       className={cn(
                         "w-full justify-start text-left font-normal",
@@ -386,13 +375,13 @@ export default function ReportsPage() {
                 </Popover>
               </div>
               <div>
-                <label htmlFor="end-date-picker-modal" className="block text-sm font-medium text-foreground mb-1">
+                <label htmlFor="end-date-picker" className="block text-sm font-medium text-foreground mb-1">
                   End Date
                 </label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
-                      id="end-date-picker-modal"
+                      id="end-date-picker"
                       variant={"outline"}
                       className={cn(
                         "w-full justify-start text-left font-normal",
@@ -417,130 +406,123 @@ export default function ReportsPage() {
                 </Popover>
               </div>
             </div>
-            <div className="flex-1 px-6 pb-6 pt-2 overflow-hidden">
-                {isLoading ? (
-                <div className="flex items-center justify-center h-full"><LoadingSpinner size={32} /></div>
-                ) : filteredTransactions.length === 0 ? (
+
+            <h3 className="text-sm font-semibold mb-2 sticky left-0">
+                {getCurrentReportTitle()}
+            </h3>
+            {isLoading ? (
+              <div className="flex items-center justify-center h-[300px]"><LoadingSpinner size={32} /></div>
+            ) : filteredTransactions.length === 0 ? (
+              <EmptyState
+                IconComponent={PackageIcon}
+                title="No Transactions Found"
+                description="No transactions match your current selection, or no transactions have been recorded yet."
+                className="my-4"
+              />
+            ) : (
+              <div className="h-[300px] w-full overflow-x-auto rounded-md border">
+                <table className="text-xs border-collapse min-w-full">
+                  <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
+                    <tr>
+                      <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Date</th>
+                      <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Item Name</th>
+                      <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Warehouse</th>
+                      <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Type</th>
+                      <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">Change</th>
+                      <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">Before</th>
+                      <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">After</th>
+                      <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-normal break-words min-w-[150px]">Comment</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredTransactions.map((entry) => (
+                      <tr key={entry.id + entry.timestamp} className="border-b border-border/50 last:border-b-0 hover:bg-muted/10 dark:hover:bg-muted/5">
+                        <td className="py-3 px-4 whitespace-nowrap">{format(new Date(entry.timestamp), 'P p')}</td>
+                        <td className="py-3 px-4 break-words">{entry.itemName}</td>
+                        <td className="py-3 px-4 break-words">{entry.warehouseName}</td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                           <span className={cn(
+                            'px-2 py-0.5 text-xs rounded-full',
+                            entry.type === 'CREATE_ITEM' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
+                            entry.type === 'ADD_STOCK' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
+                                entry.type === 'CONSUME_STOCK' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
+                                entry.type === 'ADJUST_STOCK' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
+                                    'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                          )}>
+                            {formatHistoryType(entry.type)}
+                          </span>
+                        </td>
+                        <td className={cn(
+                          'py-3 px-4 text-right font-medium whitespace-nowrap',
+                          entry.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                        )}>
+                          {entry.change > 0 ? `+${entry.change}` : entry.change}
+                        </td>
+                        <td className="py-3 px-4 text-right whitespace-nowrap">{entry.quantityBefore}</td>
+                        <td className="py-3 px-4 text-right font-semibold whitespace-nowrap">{entry.quantityAfter}</td>
+                        <td className="py-3 px-4 text-xs whitespace-normal break-words min-w-[150px]">{entry.comment}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="overflow-hidden">
+          <CardHeader>
+            <CardTitle>Archived Printed Reports</CardTitle>
+            <CardDescription>View and re-print previously generated reports.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? <div className="flex items-center justify-center h-[300px]"><LoadingSpinner /></div> : (
+              archivedReports.length === 0 ? (
                 <EmptyState
-                    IconComponent={PackageIcon}
-                    title="No Transactions Found"
-                    description="No transactions match your current selection, or no transactions have been recorded yet."
-                    className="mt-4"
+                  IconComponent={ArchiveIcon}
+                  title="No Archived Reports"
+                  description="Reports you print will be archived here for future reference."
+                  className="my-4"
                 />
-                ) : (
-                <div className="h-full w-full overflow-auto rounded-md border">
-                    <h3 className="text-sm font-semibold sticky left-0 px-4 py-2 bg-background/80 dark:bg-card/70 backdrop-blur-sm z-10">
-                        {getCurrentReportTitle()}
-                    </h3>
-                    <table className="text-xs border-collapse min-w-full">
+              ) : (
+                <div className="h-[400px] w-full overflow-x-auto rounded-md border">
+                  <table className="text-xs border-collapse min-w-full">
                     <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
-                        <tr>
-                        <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Date</th>
-                        <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Item Name</th>
-                        <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Warehouse</th>
-                        <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Type</th>
-                        <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">Change</th>
-                        <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">Before</th>
-                        <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">After</th>
-                        <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-normal break-words min-w-[150px]">Comment</th>
-                        </tr>
+                      <tr>
+                        <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Report For</th>
+                        <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Type</th>
+                        <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Printed By</th>
+                        <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Printed At</th>
+                        <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">Actions</th>
+                      </tr>
                     </thead>
                     <tbody>
-                        {filteredTransactions.map((entry) => (
-                        <tr key={entry.id + entry.timestamp} className="border-b border-border/50 last:border-b-0 hover:bg-muted/10 dark:hover:bg-muted/5">
-                            <td className="py-3 px-4 whitespace-nowrap">{format(new Date(entry.timestamp), 'P p')}</td>
-                            <td className="py-3 px-4 break-words">{entry.itemName}</td>
-                            <td className="py-3 px-4 break-words">{entry.warehouseName}</td>
-                            <td className="py-3 px-4 whitespace-nowrap">
-                            <span className={cn(
-                                'px-2 py-0.5 text-xs rounded-full',
-                                entry.type === 'CREATE_ITEM' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
-                                entry.type === 'ADD_STOCK' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
-                                    entry.type === 'CONSUME_STOCK' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
-                                    entry.type === 'ADJUST_STOCK' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
-                                        'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                            )}>
-                                {formatHistoryType(entry.type)}
-                            </span>
-                            </td>
-                            <td className={cn(
-                            'py-3 px-4 text-right font-medium whitespace-nowrap',
-                            entry.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                            )}>
-                            {entry.change > 0 ? `+${entry.change}` : entry.change}
-                            </td>
-                            <td className="py-3 px-4 text-right whitespace-nowrap">{entry.quantityBefore}</td>
-                            <td className="py-3 px-4 text-right font-semibold whitespace-nowrap">{entry.quantityAfter}</td>
-                            <td className="py-3 px-4 text-xs whitespace-normal break-words min-w-[150px]">{entry.comment}</td>
+                      {archivedReports.sort((a, b) => new Date(b.printedAt).getTime() - new Date(a.printedAt).getTime()).map((report) => (
+                        <tr key={report.id} className="border-b border-border/50 last:border-b-0 hover:bg-muted/10 dark:hover:bg-muted/5">
+                          <td className="py-3 px-4 font-medium break-words">
+                            {report.reportType === 'ITEM' ? report.itemName : report.warehouseName}
+                            {report.reportType === 'ITEM' && <span className="text-xs text-muted-foreground block"> (in {report.warehouseName})</span>}
+                          </td>
+                          <td className="py-3 px-4 break-words">
+                            {report.reportType === 'ITEM' ? 'Item Details' : report.reportType === 'WAREHOUSE' ? 'Warehouse Summary' : 'Transactions'}
+                          </td>
+                          <td className="py-3 px-4 whitespace-nowrap">{report.printedBy}</td>
+                          <td className="py-3 px-4 text-xs whitespace-nowrap">{format(new Date(report.printedAt), 'P p')}</td>
+                          <td className="py-3 px-4 text-right whitespace-nowrap">
+                            <Button variant="outline" size="sm" onClick={() => handlePrintArchivedReport(report)}>
+                              <Printer className="mr-2 h-3 w-3" /> Re-print
+                            </Button>
+                          </td>
                         </tr>
-                        ))}
+                      ))}
                     </tbody>
-                    </table>
+                  </table>
                 </div>
-                )}
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={isArchivedReportsDialogOpen} onOpenChange={setIsArchivedReportsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline" className="w-full md:w-auto">View Archived Reports</Button>
-          </DialogTrigger>
-          <DialogContent className="w-[800px] h-[330px] max-w-none flex flex-col p-0 sm:rounded-lg">
-            <DialogHeader className="p-6 pb-2 border-b">
-                <DialogTitle>Archived Printed Reports</DialogTitle>
-            </DialogHeader>
-            <div className="flex-1 p-6 pt-2 overflow-hidden">
-                {isLoading ? <div className="flex items-center justify-center h-full"><LoadingSpinner /></div> : (
-                archivedReports.length === 0 ? (
-                    <EmptyState
-                    IconComponent={ArchiveIcon}
-                    title="No Archived Reports"
-                    description="Reports you print will be archived here for future reference."
-                    className="mt-4"
-                    />
-                ) : (
-                    <div className="h-full w-full overflow-auto rounded-md border">
-                    <table className="text-xs border-collapse min-w-full">
-                        <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
-                        <tr>
-                            <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Report For</th>
-                            <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Type</th>
-                            <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Printed By</th>
-                            <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Printed At</th>
-                            <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">Actions</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {archivedReports.sort((a, b) => new Date(b.printedAt).getTime() - new Date(a.printedAt).getTime()).map((report) => (
-                            <tr key={report.id} className="border-b border-border/50 last:border-b-0 hover:bg-muted/10 dark:hover:bg-muted/5">
-                            <td className="py-3 px-4 font-medium break-words">
-                                {report.reportType === 'ITEM' ? report.itemName : report.warehouseName}
-                                {report.reportType === 'ITEM' && <span className="text-xs text-muted-foreground block"> (in {report.warehouseName})</span>}
-                            </td>
-                            <td className="py-3 px-4 break-words">
-                                {report.reportType === 'ITEM' ? 'Item Details' : report.reportType === 'WAREHOUSE' ? 'Warehouse Summary' : 'Transactions'}
-                            </td>
-                            <td className="py-3 px-4 whitespace-nowrap">{report.printedBy}</td>
-                            <td className="py-3 px-4 text-xs whitespace-nowrap">{format(new Date(report.printedAt), 'P p')}</td>
-                            <td className="py-3 px-4 text-right whitespace-nowrap">
-                                <Button variant="outline" size="sm" onClick={() => handlePrintArchivedReport(report)}>
-                                <Printer className="mr-2 h-3 w-3" /> Re-print
-                                </Button>
-                            </td>
-                            </tr>
-                        ))}
-                        </tbody>
-                    </table>
-                    </div>
-                )
-                )}
-            </div>
-          </DialogContent>
-        </Dialog>
+              )
+            )}
+          </CardContent>
+        </Card>
       </div>
     </>
   );
 }
-
-    
