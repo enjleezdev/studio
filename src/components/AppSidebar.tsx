@@ -108,21 +108,6 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={isActive("/stocktake")}
-              tooltip={state === "collapsed" ? "Stocktake" : undefined}
-              onClick={handleLinkClick}
-              disabled // Assuming stocktake is not yet implemented
-              className="cursor-not-allowed opacity-50"
-            >
-              <Link href="/stocktake">
-                <ListChecks />
-                <span>Stocktake</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
            <SidebarGroup className="pt-4">
             <SidebarGroupLabel className="group-data-[collapsible=icon]:justify-center">
               AI Tools
