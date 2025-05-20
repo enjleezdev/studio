@@ -129,6 +129,7 @@ export default function SignInPage() {
             </Button>
           </form>
         </Form>
+        {/* Removed Sign Up link section
         <div className="mt-6 text-center text-sm">
           Don&apos;t have an account?{' '}
           <Link href="/signup" passHref legacyBehavior>
@@ -137,6 +138,7 @@ export default function SignInPage() {
             </a>
           </Link>
         </div>
+        */}
       </CardContent>
     </Card>
   );
