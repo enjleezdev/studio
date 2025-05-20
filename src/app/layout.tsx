@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Stock Pilot - Inventory Management',
-  description: 'Efficiently manage your warehouse inventory with Stock Pilot.',
+  title: 'EZ Inventory - Inventory Management',
+  description: 'Efficiently manage your warehouse inventory with EZ Inventory.',
 };
 
 export default function RootLayout({

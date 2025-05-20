@@ -61,7 +61,7 @@ const AppLogoAndBrand = () => {
     <div className="flex flex-col items-center justify-center py-8 text-center">
       <AppLogo />
       <h1 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-        Stock Pilot
+        EZ Inventory
       </h1>
       <p className="mt-2 text-xs text-muted-foreground">
         powered by{" "}
@@ -258,19 +258,19 @@ export default function WarehousesPage() {
         <>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4">
             {displayedWarehouses.map((warehouse) => (
-              <Card key={warehouse.id} className="flex flex-col">
+              <Card key={warehouse.id} className="flex flex-col hover:shadow-xl transition-transform duration-300 hover:-translate-y-1 rounded-xl shadow-md">
                 <Link href={`/warehouses/${warehouse.id}`} className="flex flex-col flex-grow hover:bg-muted/50 transition-colors rounded-t-lg">
-                  <CardHeader className="flex-grow px-2 py-1"> 
+                  <CardHeader className="flex-grow p-5"> 
                     <div className="flex items-start justify-between">
-                      <CardTitle className="text-base font-medium mb-0 break-words">{warehouse.name}</CardTitle> 
+                      <CardTitle className="text-lg font-bold mb-2.5 break-words">{warehouse.name}</CardTitle> 
                       <Home className="h-4 w-4 text-muted-foreground shrink-0" />
                     </div>
                     {warehouse.description && (
-                      <CardDescription className="text-xs text-muted-foreground line-clamp-2 break-words">{warehouse.description}</CardDescription> 
+                      <CardDescription className="text-sm text-muted-foreground line-clamp-2 break-words mt-1">{warehouse.description}</CardDescription> 
                     )}
                   </CardHeader>
                 </Link>
-                <div className="flex items-center justify-end gap-0.5 p-1 pt-0 border-t mt-auto"> 
+                <div className="flex items-center justify-end gap-1 p-3 pt-0 border-t mt-auto"> 
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button variant="ghost" size="sm" onClick={() => handlePrintWarehouseReport(warehouse)} aria-label={`Print report for ${warehouse.name}`}>

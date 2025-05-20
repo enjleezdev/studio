@@ -288,7 +288,7 @@ export default function ReportsPage() {
         <Card className="overflow-hidden w-full">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>Transportations</CardTitle>
+              <CardTitle>operations history</CardTitle>
             </div>
             <Button variant="outline" onClick={handlePrintVisibleTransactions} disabled={filteredTransactions.length === 0 && !isLoading}>
               <Printer className="mr-2 h-4 w-4" />
