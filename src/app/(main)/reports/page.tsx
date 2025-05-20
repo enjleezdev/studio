@@ -126,6 +126,7 @@ export default function ReportsPage() {
         transactions = transactions.filter(t => t.itemId === selectedItemId);
       }
     } else if (selectedItemId && selectedItemId !== "all_items_option_value_placeholder_for_clear") {
+      // Filter by item only if warehouse is not selected or "All Warehouses" is selected
       transactions = transactions.filter(t => t.itemId === selectedItemId);
     }
 
@@ -262,7 +263,7 @@ export default function ReportsPage() {
       if (document.body.contains(printableArea)) {
         document.body.removeChild(printableArea);
       }
-      root.unmount(); // Ensure unmount even on error
+      root.unmount(); 
       return;
     }
 
@@ -286,15 +287,14 @@ export default function ReportsPage() {
       <div className="space-y-6">
         <Dialog open={isOperationsHistoryDialogOpen} onOpenChange={setIsOperationsHistoryDialogOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline" className="w-full md:w-auto">View Operations History</Button>
+            <Button variant="default" className="w-full md:w-auto">View Operations History</Button>
           </DialogTrigger>
           <DialogContent className="w-[95vw] max-w-2xl h-[330px] flex flex-col p-0 sm:rounded-lg">
             <DialogHeader className="p-4 border-b shrink-0">
               <DialogTitle>Operations History</DialogTitle>
             </DialogHeader>
             
-            <div className="flex-1 overflow-y-auto min-h-0"> {/* Vertically scrollable middle section */}
-              {/* Filters UI */}
+            <div className="flex-1 overflow-y-auto min-h-0"> 
               <div className="p-4 flex flex-col gap-4 md:grid md:grid-cols-2 lg:grid-cols-4 border-b">
                 <div>
                   <label htmlFor="warehouse-select-modal" className="block text-sm font-medium text-foreground mb-1">
@@ -405,7 +405,6 @@ export default function ReportsPage() {
                 </div>
               </div>
               
-              {/* Table Section */}
               <div className="p-4 pt-2">
                 <h3 className="text-sm font-semibold mb-2 sticky left-0">
                     {getCurrentReportTitle()}
@@ -421,7 +420,7 @@ export default function ReportsPage() {
                       className="my-4"
                     />
                   ) : (
-                    <table className="text-xs border-collapse min-w-full">
+                    <table className="text-xs border-collapse">
                       <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
                         <tr>
                           <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Date</th>
@@ -485,14 +484,14 @@ export default function ReportsPage() {
 
         <Dialog open={isArchivedReportsDialogOpen} onOpenChange={setIsArchivedReportsDialogOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline" className="w-full md:w-auto">View Archived Reports</Button>
+            <Button variant="default" className="w-full md:w-auto">View Archived Reports</Button>
           </DialogTrigger>
           <DialogContent className="w-[95vw] max-w-2xl h-[330px] flex flex-col p-0 sm:rounded-lg">
             <DialogHeader className="p-4 border-b shrink-0">
               <DialogTitle>Archived Printed Reports</DialogTitle>
             </DialogHeader>
-            <div className="flex-1 overflow-y-auto min-h-0"> {/* Vertically scrollable content */}
-              <div className="p-4 pt-2"> {/* Inner padding */}
+            <div className="flex-1 overflow-y-auto min-h-0">
+              <div className="p-4 pt-2">
                 <div className="w-full overflow-x-auto rounded-md border">
                   {isLoading ? <div className="flex items-center justify-center h-full py-10"><LoadingSpinner /></div> : (
                     archivedReports.length === 0 ? (
@@ -503,7 +502,7 @@ export default function ReportsPage() {
                         className="my-4"
                       />
                     ) : (
-                      <table className="text-xs border-collapse min-w-full">
+                      <table className="text-xs border-collapse">
                         <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
                           <tr>
                             <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Report For</th>
