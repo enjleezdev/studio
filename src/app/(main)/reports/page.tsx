@@ -99,7 +99,6 @@ export default function ReportsPage() {
 
       flattened.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setAllFlattenedTransactions(flattened);
-      // setFilteredTransactions(flattened); // Initial load handled by filter useEffect
 
       const storedArchivedReportsString = localStorage.getItem('archivedReports');
       if (storedArchivedReportsString) {
@@ -127,7 +126,6 @@ export default function ReportsPage() {
          transactions = transactions.filter(t => t.itemId === selectedItemId);
       }
     }
-
 
     if (startDate) {
       const startOfDay = new Date(startDate);
@@ -174,7 +172,6 @@ export default function ReportsPage() {
     } else if (selectedItmObj) {
       title = `Transactions for ${selectedItmObj.name} (All Warehouses)`;
     }
-
 
     if (startDate || endDate) {
       let dateRange = '';
@@ -284,18 +281,18 @@ export default function ReportsPage() {
         title="Inventory Reports"
         description="View transaction history and stock levels."
       />
-      <div className="space-y-6">
-        <Card className="overflow-hidden w-full">
+      <div className="space-y-6 w-full overflow-x-auto"> {/* Added w-full overflow-x-auto here */}
+        <Card className="w-[800px] h-[330px] overflow-hidden flex flex-col shrink-0">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>operations history</CardTitle>
+              <CardTitle>Operations History</CardTitle> {/* Changed title */}
             </div>
             <Button variant="outline" onClick={handlePrintVisibleTransactions} disabled={filteredTransactions.length === 0 && !isLoading}>
               <Printer className="mr-2 h-4 w-4" />
               Print Visible
             </Button>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="flex-1 flex flex-col overflow-hidden p-6 pt-0">
             <div className="flex flex-col gap-4 md:grid md:grid-cols-2 lg:grid-cols-4">
               <div>
                 <label htmlFor="warehouse-select" className="block text-sm font-medium text-foreground mb-1">
@@ -413,78 +410,78 @@ export default function ReportsPage() {
                 IconComponent={PackageIcon}
                 title="No Transactions Found"
                 description="No transactions match your current selection, or no transactions have been recorded yet."
+                className="mt-4"
               />
             ) : (
-              <div className="mt-6">
-                <h3 className="text-lg font-semibold mb-2">
+              <div className="flex-1 w-full overflow-auto rounded-md border mt-4">
+                <h3 className="text-lg font-semibold mb-2 sticky left-0 px-4 py-2 bg-background/80 dark:bg-card/70 backdrop-blur-sm z-10">
                   {getCurrentReportTitle()}
                 </h3>
-                <div className="h-[400px] w-full overflow-x-auto rounded-md border">
-                  <table className="text-xs border-collapse min-w-full">
-                    <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
-                      <tr>
-                        <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Date</th>
-                        <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Item Name</th>
-                        <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Warehouse</th>
-                        <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Type</th>
-                        <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">Change</th>
-                        <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">Before</th>
-                        <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">After</th>
-                        <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-normal break-words min-w-[150px]">Comment</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredTransactions.map((entry) => (
-                        <tr key={entry.id + entry.timestamp} className="border-b border-border/50 last:border-b-0 hover:bg-muted/10 dark:hover:bg-muted/5">
-                          <td className="py-3 px-4 whitespace-nowrap">{format(new Date(entry.timestamp), 'P p')}</td>
-                          <td className="py-3 px-4 break-words">{entry.itemName}</td>
-                          <td className="py-3 px-4 break-words">{entry.warehouseName}</td>
-                          <td className="py-3 px-4 whitespace-nowrap">
-                            <span className={cn(
-                              'px-2 py-0.5 text-xs rounded-full',
-                              entry.type === 'CREATE_ITEM' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
-                                entry.type === 'ADD_STOCK' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
-                                  entry.type === 'CONSUME_STOCK' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
-                                    entry.type === 'ADJUST_STOCK' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
-                                      'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                            )}>
-                              {formatHistoryType(entry.type)}
-                            </span>
-                          </td>
-                          <td className={cn(
-                            'py-3 px-4 text-right font-medium whitespace-nowrap',
-                            entry.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                <table className="text-xs border-collapse min-w-full">
+                  <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
+                    <tr>
+                      <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Date</th>
+                      <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Item Name</th>
+                      <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Warehouse</th>
+                      <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Type</th>
+                      <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">Change</th>
+                      <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">Before</th>
+                      <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">After</th>
+                      <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-normal break-words min-w-[150px]">Comment</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredTransactions.map((entry) => (
+                      <tr key={entry.id + entry.timestamp} className="border-b border-border/50 last:border-b-0 hover:bg-muted/10 dark:hover:bg-muted/5">
+                        <td className="py-3 px-4 whitespace-nowrap">{format(new Date(entry.timestamp), 'P p')}</td>
+                        <td className="py-3 px-4 break-words">{entry.itemName}</td>
+                        <td className="py-3 px-4 break-words">{entry.warehouseName}</td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          <span className={cn(
+                            'px-2 py-0.5 text-xs rounded-full',
+                            entry.type === 'CREATE_ITEM' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
+                              entry.type === 'ADD_STOCK' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
+                                entry.type === 'CONSUME_STOCK' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
+                                  entry.type === 'ADJUST_STOCK' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
+                                    'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
                           )}>
-                            {entry.change > 0 ? `+${entry.change}` : entry.change}
-                          </td>
-                          <td className="py-3 px-4 text-right whitespace-nowrap">{entry.quantityBefore}</td>
-                          <td className="py-3 px-4 text-right font-semibold whitespace-nowrap">{entry.quantityAfter}</td>
-                          <td className="py-3 px-4 text-xs whitespace-normal break-words min-w-[150px]">{entry.comment}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                            {formatHistoryType(entry.type)}
+                          </span>
+                        </td>
+                        <td className={cn(
+                          'py-3 px-4 text-right font-medium whitespace-nowrap',
+                          entry.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                        )}>
+                          {entry.change > 0 ? `+${entry.change}` : entry.change}
+                        </td>
+                        <td className="py-3 px-4 text-right whitespace-nowrap">{entry.quantityBefore}</td>
+                        <td className="py-3 px-4 text-right font-semibold whitespace-nowrap">{entry.quantityAfter}</td>
+                        <td className="py-3 px-4 text-xs whitespace-normal break-words min-w-[150px]">{entry.comment}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden w-full">
+        <Card className="w-[800px] h-[330px] overflow-hidden flex flex-col shrink-0">
           <CardHeader>
             <CardTitle>Archived Printed Reports</CardTitle>
             <CardDescription>View and re-print previously generated reports.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 flex flex-col overflow-hidden p-6 pt-0">
             {isLoading ? <LoadingSpinner className="mx-auto my-6" /> : (
               archivedReports.length === 0 ? (
                 <EmptyState
                   IconComponent={ArchiveIcon}
                   title="No Archived Reports"
                   description="Reports you print will be archived here for future reference."
+                  className="mt-4"
                 />
               ) : (
-                <div className="h-[400px] w-full overflow-x-auto rounded-md border">
+                <div className="flex-1 w-full overflow-auto rounded-md border">
                   <table className="text-xs border-collapse min-w-full">
                     <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
                       <tr>
