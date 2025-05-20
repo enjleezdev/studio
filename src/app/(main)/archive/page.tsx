@@ -10,22 +10,19 @@ import { useToast } from '@/hooks/use-toast';
 import type { Warehouse, Item } from '@/lib/types';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
-// ScrollArea removed as we are using div with overflow-x: auto
 import { format } from 'date-fns';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, query, where, orderBy, doc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 
-const updateWarehouseTimestamp = (currentWarehouseId: string) => {
+const updateWarehouseTimestampInFirestore = async (warehouseId: string) => {
   try {
-    const storedWarehousesString = localStorage.getItem('warehouses');
-    if (storedWarehousesString) {
-      let warehouses: Warehouse[] = JSON.parse(storedWarehousesString);
-      const warehouseIndex = warehouses.findIndex(wh => wh.id === currentWarehouseId);
-      if (warehouseIndex > -1) {
-        warehouses[warehouseIndex].updatedAt = new Date().toISOString();
-        localStorage.setItem('warehouses', JSON.stringify(warehouses));
-      }
-    }
+    const warehouseDocRef = doc(db, "warehouses", warehouseId);
+    await updateDoc(warehouseDocRef, {
+      updatedAt: serverTimestamp(),
+    });
   } catch (error) {
-    console.error("Failed to update warehouse timestamp in localStorage", error);
+    console.error("Failed to update warehouse timestamp in Firestore", error);
+    // Optionally, show a toast for this error if it's critical for user feedback
   }
 };
 
@@ -33,24 +30,67 @@ const updateWarehouseTimestamp = (currentWarehouseId: string) => {
 export default function ArchivePage() {
   const { toast } = useToast();
   const [archivedWarehouses, setArchivedWarehouses] = React.useState<Warehouse[]>([]);
-  const [allWarehouses, setAllWarehouses] = React.useState<Warehouse[]>([]);
+  const [allWarehousesMap, setAllWarehousesMap] = React.useState<Map<string, string>>(new Map());
   const [archivedItems, setArchivedItems] = React.useState<Item[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
 
-  const loadArchivedData = React.useCallback(() => {
+  const loadArchivedData = React.useCallback(async () => {
     setIsLoading(true);
     try {
-      const storedWarehousesString = localStorage.getItem('warehouses');
-      const allWhs: Warehouse[] = storedWarehousesString ? JSON.parse(storedWarehousesString) : [];
-      setAllWarehouses(allWhs);
-      setArchivedWarehouses(allWhs.filter(wh => wh.isArchived).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
+      // Load all warehouses to get names for items
+      const allWhQuery = query(collection(db, "warehouses"));
+      const allWhSnapshot = await getDocs(allWhQuery);
+      const whMap = new Map<string, string>();
+      allWhSnapshot.forEach(docSnap => {
+        whMap.set(docSnap.id, docSnap.data().name);
+      });
+      setAllWarehousesMap(whMap);
 
-      const storedItemsString = localStorage.getItem('items');
-      const allIts: Item[] = storedItemsString ? JSON.parse(storedItemsString) : [];
-      setArchivedItems(allIts.filter(item => item.isArchived).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
+      // Load archived warehouses
+      const archivedWhQuery = query(
+        collection(db, "warehouses"),
+        where("isArchived", "==", true),
+        orderBy("updatedAt", "desc")
+      );
+      const archivedWhSnapshot = await getDocs(archivedWhQuery);
+      const whsFromFirestore = archivedWhSnapshot.docs.map(docSnap => {
+        const data = docSnap.data();
+        return {
+          id: docSnap.id,
+          name: data.name,
+          description: data.description,
+          isArchived: data.isArchived,
+          createdAt: data.createdAt?.toDate?.().toISOString() || new Date().toISOString(),
+          updatedAt: data.updatedAt?.toDate?.().toISOString() || new Date().toISOString(),
+        } as Warehouse;
+      });
+      setArchivedWarehouses(whsFromFirestore);
+
+      // Load archived items
+      const archivedItemsQuery = query(
+        collection(db, "items"),
+        where("isArchived", "==", true),
+        orderBy("updatedAt", "desc")
+      );
+      const archivedItemsSnapshot = await getDocs(archivedItemsQuery);
+      const itemsFromFirestore = archivedItemsSnapshot.docs.map(docSnap => {
+        const data = docSnap.data();
+        return {
+          id: docSnap.id,
+          warehouseId: data.warehouseId,
+          name: data.name,
+          quantity: data.quantity,
+          location: data.location,
+          history: data.history || [],
+          isArchived: data.isArchived,
+          createdAt: data.createdAt?.toDate?.().toISOString() || new Date().toISOString(),
+          updatedAt: data.updatedAt?.toDate?.().toISOString() || new Date().toISOString(),
+        } as Item;
+      });
+      setArchivedItems(itemsFromFirestore);
 
     } catch (error) {
-      console.error("Failed to load archived data from localStorage", error);
+      console.error("Failed to load archived data from Firestore", error);
       toast({ title: "Error", description: "Failed to load archived data.", variant: "destructive" });
     } finally {
       setIsLoading(false);
@@ -62,75 +102,66 @@ export default function ArchivePage() {
   }, [loadArchivedData]);
 
   const getWarehouseName = (warehouseId: string): string => {
-    const warehouse = allWarehouses.find(wh => wh.id === warehouseId);
-    return warehouse ? warehouse.name : "Unknown Warehouse";
+    return allWarehousesMap.get(warehouseId) || "Unknown Warehouse";
   };
 
-  const handleRestoreWarehouse = (warehouseId: string) => {
+  const handleRestoreWarehouse = async (warehouseId: string) => {
+    setIsLoading(true); // Or a specific loading state for this action
     try {
-      const existingWarehousesString = localStorage.getItem('warehouses');
-      let currentAllWarehouses: Warehouse[] = existingWarehousesString ? JSON.parse(existingWarehousesString) : [];
-      let restoredWarehouseName = "The warehouse";
+      const warehouseDocRef = doc(db, "warehouses", warehouseId);
+      const warehouseSnap = await getDoc(warehouseDocRef);
+      const warehouseName = warehouseSnap.exists() ? warehouseSnap.data().name : "The warehouse";
 
-      const warehouseIndex = currentAllWarehouses.findIndex(wh => wh.id === warehouseId);
-      if (warehouseIndex > -1) {
-        restoredWarehouseName = currentAllWarehouses[warehouseIndex].name;
-        currentAllWarehouses[warehouseIndex] = {
-          ...currentAllWarehouses[warehouseIndex],
-          isArchived: false,
-          updatedAt: new Date().toISOString(),
-        };
-        localStorage.setItem('warehouses', JSON.stringify(currentAllWarehouses));
+      await updateDoc(warehouseDocRef, {
+        isArchived: false,
+        updatedAt: serverTimestamp(),
+      });
 
-        toast({ title: "Warehouse Restored", description: `${restoredWarehouseName} has been restored.` });
-
-        loadArchivedData();
-      } else {
-        toast({ title: "Error", description: "Warehouse not found for restoring.", variant: "destructive" });
-      }
+      toast({ title: "Warehouse Restored", description: `${warehouseName} has been restored.` });
+      loadArchivedData(); // Reload data to reflect changes
     } catch (error) {
-      console.error("Failed to restore warehouse from localStorage", error);
+      console.error("Failed to restore warehouse from Firestore", error);
       toast({ title: "Error", description: "Failed to restore warehouse.", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleRestoreItem = (itemId: string) => {
+  const handleRestoreItem = async (itemId: string) => {
+     setIsLoading(true); // Or a specific loading state for this action
     try {
-      const existingItemsString = localStorage.getItem('items');
-      let allItems: Item[] = existingItemsString ? JSON.parse(existingItemsString) : [];
+      const itemDocRef = doc(db, "items", itemId);
+      const itemSnap = await getDoc(itemDocRef);
       let restoredItemName = "The item";
       let parentWarehouseId = "";
 
-      const itemIndex = allItems.findIndex(i => i.id === itemId);
-      if (itemIndex > -1) {
-        restoredItemName = allItems[itemIndex].name;
-        parentWarehouseId = allItems[itemIndex].warehouseId;
-        allItems[itemIndex] = {
-          ...allItems[itemIndex],
-          isArchived: false,
-          updatedAt: new Date().toISOString()
-        };
-        localStorage.setItem('items', JSON.stringify(allItems));
-
-        toast({ title: "Item Restored", description: `${restoredItemName} has been restored.` });
-
-        if (parentWarehouseId) {
-          updateWarehouseTimestamp(parentWarehouseId);
-        }
-        
-        setArchivedItems(prevItems => prevItems.filter(i => i.id !== itemId));
-      } else {
-        toast({ title: "Error", description: "Item not found for restoring.", variant: "destructive" });
+      if (itemSnap.exists()) {
+        restoredItemName = itemSnap.data().name;
+        parentWarehouseId = itemSnap.data().warehouseId;
       }
+      
+      await updateDoc(itemDocRef, {
+        isArchived: false,
+        updatedAt: serverTimestamp(),
+      });
+
+      toast({ title: "Item Restored", description: `${restoredItemName} has been restored.` });
+      
+      if (parentWarehouseId) {
+        await updateWarehouseTimestampInFirestore(parentWarehouseId);
+      }
+      loadArchivedData(); // Reload data to reflect changes
     } catch (error) {
-      console.error("Failed to restore item from localStorage", error);
+      console.error("Failed to restore item from Firestore", error);
       toast({ title: "Error", description: "Failed to restore item.", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
     }
   };
 
 
-  if (isLoading) {
-    return <LoadingSpinner className="mx-auto my-10" size={48} />;
+  if (isLoading && archivedWarehouses.length === 0 && archivedItems.length === 0) {
+    return <div className="flex justify-center items-center h-[calc(100vh-200px)]"><LoadingSpinner size={48} /></div>;
   }
 
   return (
@@ -146,7 +177,8 @@ export default function ArchivePage() {
             <CardDescription>Warehouses that have been moved to the archive.</CardDescription>
           </CardHeader>
           <CardContent>
-            {archivedWarehouses.length === 0 ? (
+            {isLoading && archivedWarehouses.length === 0 ? <LoadingSpinner className="mx-auto my-4" /> :
+            archivedWarehouses.length === 0 ? (
               <EmptyState
                 IconComponent={WarehouseIcon}
                 title="No Archived Warehouses"
@@ -154,11 +186,12 @@ export default function ArchivePage() {
               />
             ) : (
               <div className="h-[400px] w-full overflow-x-auto rounded-md border">
-                <table className="text-xs border-collapse"> {/* REMOVED min-w-full */}
+                <table className="text-xs border-collapse min-w-full">
                   <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
                     <tr>
                       <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Name</th>
                       <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Description</th>
+                       <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Archived On</th>
                       <th className="py-3 px-4 text-right font-medium text-muted-foreground whitespace-nowrap">Actions</th>
                     </tr>
                   </thead>
@@ -167,6 +200,9 @@ export default function ArchivePage() {
                       <tr key={wh.id} className="border-b border-border/50 last:border-b-0 hover:bg-muted/10 dark:hover:bg-muted/5">
                         <td className="py-3 px-4 font-medium break-words">{wh.name}</td>
                         <td className="py-3 px-4 text-sm text-muted-foreground break-words">{wh.description || 'N/A'}</td>
+                        <td className="py-3 px-4 text-xs whitespace-nowrap">
+                          {wh.updatedAt ? format(new Date(wh.updatedAt), 'P p') : 'N/A'}
+                        </td>
                         <td className="py-3 px-4 text-right whitespace-nowrap">
                           <Button variant="outline" size="sm" onClick={() => handleRestoreWarehouse(wh.id)}>
                             <RotateCcw className="mr-2 h-3 w-3" /> Restore
@@ -187,7 +223,8 @@ export default function ArchivePage() {
             <CardDescription>Items that have been moved to the archive.</CardDescription>
           </CardHeader>
           <CardContent>
-            {archivedItems.length === 0 ? (
+             {isLoading && archivedItems.length === 0 ? <LoadingSpinner className="mx-auto my-4" /> :
+             archivedItems.length === 0 ? (
               <EmptyState
                 IconComponent={Package}
                 title="No Archived Items"
@@ -195,7 +232,7 @@ export default function ArchivePage() {
               />
             ) : (
               <div className="h-[400px] w-full overflow-x-auto rounded-md border">
-                <table className="text-xs border-collapse"> {/* REMOVED min-w-full */}
+                <table className="text-xs border-collapse min-w-full">
                   <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
                     <tr>
                       <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Name</th>
@@ -231,4 +268,3 @@ export default function ArchivePage() {
     </>
   );
 }
-
