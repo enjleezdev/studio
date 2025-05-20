@@ -16,14 +16,10 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  // SidebarMenuSub, // Not used currently
-  // SidebarMenuSubItem, // Not used currently
-  // SidebarMenuSubButton, // Not used currently
   SidebarGroup,
   SidebarGroupLabel,
-  SidebarGroupContent,
+  SidebarGroupContent, 
   useSidebar,
-  // SidebarTrigger, // Not used directly in AppSidebar anymore
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -34,16 +30,18 @@ import { useToast } from "@/hooks/use-toast";
 
 const USER_PROFILE_LS_KEY = 'userProfileData';
 
+// MiniAppLogo definition is kept in case it's used elsewhere or for future adjustments,
+// but it's not rendered in the SidebarHeader in this version.
 const MiniAppLogo = ({ className }: { className?: string }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 24 24"
     fill="none"
-    stroke="currentColor"
+    stroke="currentColor" 
     strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
-    className={cn("h-6 w-6 text-primary", className)}
+    className={cn("h-6 w-6", className)} 
   >
     <rect width="8" height="8" x="3" y="3" rx="2"/>
     <path d="M7 11v4a2 2 0 0 0 2 2h4"/>
@@ -69,10 +67,11 @@ export function AppSidebar() {
         setProfileEmail(profile.email || "user@example.com");
       } else {
         const defaultProfile: UserProfile = {
-          id: 'default-user',
+          id: 'default-user', 
           username: 'Admin',
-          email: 'admin@example.com',
+          email: 'admin@example.com', 
           usernameChanged: false,
+          createdAt: new Date().toISOString(), 
         };
         localStorage.setItem(USER_PROFILE_LS_KEY, JSON.stringify(defaultProfile));
         setProfileUsername(defaultProfile.username);
@@ -80,16 +79,19 @@ export function AppSidebar() {
       }
     } catch (error) {
       console.error('Failed to load user profile for sidebar:', error);
-      setProfileUsername("User");
-      setProfileEmail("user@example.com");
+      setProfileUsername("User"); 
+      setProfileEmail("user@example.com"); 
     }
   }, []);
 
   React.useEffect(() => {
     loadProfileData();
-    window.addEventListener('profileUpdated', loadProfileData);
+    const handleProfileUpdate = () => {
+      loadProfileData();
+    };
+    window.addEventListener('profileUpdated', handleProfileUpdate);
     return () => {
-      window.removeEventListener('profileUpdated', loadProfileData);
+      window.removeEventListener('profileUpdated', handleProfileUpdate);
     };
   }, [loadProfileData]);
 
@@ -134,16 +136,10 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r">
        <SidebarHeader className={cn(
-        "flex items-center h-14",
-        state === 'collapsed' ? 'justify-center px-2' : 'px-4 justify-start gap-2'
+        "flex items-center h-14", // Keep height for structure
+        state === 'collapsed' ? 'justify-center px-2' : 'px-4 justify-start'
       )}>
-        <MiniAppLogo />
-        <span className={cn(
-          "font-semibold text-primary text-base overflow-hidden text-ellipsis whitespace-nowrap",
-          state === 'collapsed' && 'opacity-0 hidden'
-        )}>
-          EZ Inventory
-        </span>
+        {/* Logo and name removed as per request */}
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
@@ -225,7 +221,7 @@ export function AppSidebar() {
              <SidebarMenuButton
               onClick={handleSignOut}
               tooltip={state === "collapsed" ? "Log Out" : undefined}
-              variant="default" // Or "destructive" for a red button
+              variant="default" 
               className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               <LogOut />

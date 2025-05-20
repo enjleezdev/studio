@@ -1,10 +1,10 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-  /* overflow-x: hidden; */ /* Reverted this change */
 }
 
 @layer base {
@@ -40,13 +40,13 @@ body {
     --radius: 0.5rem;
 
     /* Sidebar specific theme */
-    --sidebar-background: 220 25% 94%;
-    --sidebar-foreground: var(--foreground);
-    --sidebar-primary: var(--primary);
+    --sidebar-background: var(--primary); /* Orange Background */
+    --sidebar-foreground: var(--primary-foreground); /* White Text/Icons */
+    --sidebar-primary: var(--primary); 
     --sidebar-primary-foreground: var(--primary-foreground);
-    --sidebar-accent: var(--accent);
-    --sidebar-accent-foreground: var(--accent-foreground);
-    --sidebar-border: var(--border);
+    --sidebar-accent: 32 96% 48%; /* Darker Orange for active/hover */
+    --sidebar-accent-foreground: var(--primary-foreground); /* White text on darker orange */
+    --sidebar-border: hsl(var(--primary) / 0.5); /* Border as a shade of primary or a neutral */
     --sidebar-ring: var(--ring);
 
     --chart-1: 12 76% 61%;
@@ -67,7 +67,9 @@ body {
     --popover-foreground: 220 20% 90%;
 
     --primary: 32 90% 60%; /* Orange, slightly lighter for dark mode */
-    --primary-foreground: 30 70% 10%; /* Very Dark Orange/Brown for text on primary */
+    /* --primary-foreground: 30 70% 10%; */ /* Original: Very Dark Orange/Brown - low contrast on orange */
+    --primary-foreground: 0 0% 98%; /* Changed to Light Gray/White for better contrast on dark orange */
+
 
     --secondary: 205 50% 25%; /* Darker Muted Blue */
     --secondary-foreground: 205 80% 85%; /* Lighter blue text */
@@ -86,13 +88,13 @@ body {
     --ring: 32 90% 60%; /* Orange for rings */
 
     /* Sidebar specific theme for dark mode */
-    --sidebar-background: 220 15% 12%;
-    --sidebar-foreground: var(--foreground);
-    --sidebar-primary: var(--primary);
-    --sidebar-primary-foreground: var(--primary-foreground);
-    --sidebar-accent: var(--accent);
-    --sidebar-accent-foreground: var(--accent-foreground);
-    --sidebar-border: var(--border);
+    --sidebar-background: var(--primary); /* Dark Orange Background */
+    --sidebar-foreground: var(--foreground); /* Light Grayish Blue Text/Icons (general dark mode foreground) */
+    --sidebar-primary: var(--primary); 
+    --sidebar-primary-foreground: var(--foreground); /* Light Grayish Blue Text/Icons */
+    --sidebar-accent: 32 90% 50%; /* Even Darker Orange for active/hover */
+    --sidebar-accent-foreground: var(--foreground); /* Light Grayish Blue text on even darker orange */
+    --sidebar-border: hsl(var(--primary) / 0.5); /* Border as a shade of primary or a neutral */
     --sidebar-ring: var(--ring);
 
     --chart-1: 220 70% 50%;
