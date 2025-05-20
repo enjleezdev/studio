@@ -17,10 +17,11 @@ import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { Eye, EyeOff } from 'lucide-react';
+import { SplashScreen } from '@/components/SplashScreen';
 
 const signInFormSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
-  password: z.string().min(1, { message: "Password is required." }), // Min 1 for presence, Firebase handles length rules
+  password: z.string().min(1, { message: "Password is required." }),
 });
 
 type SignInFormValues = z.infer<typeof signInFormSchema>;
@@ -30,6 +31,7 @@ export default function SignInPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
+  const [showSplashScreen, setShowSplashScreen] = React.useState(false); // New state for splash screen
 
   const form = useForm<SignInFormValues>({
     resolver: zodResolver(signInFormSchema),
@@ -47,7 +49,10 @@ export default function SignInPage() {
         title: 'Login Successful',
         description: 'Welcome back!',
       });
-      router.push('/warehouses'); // Redirect to the main app page
+      setShowSplashScreen(true); // Show splash screen
+      setTimeout(() => {
+        router.push('/warehouses'); // Redirect after 2.5 seconds
+      }, 2500);
     } catch (error: any) {
       console.error("Firebase sign-in error:", error);
       let errorMessage = "Failed to sign in. Please check your credentials.";
@@ -61,9 +66,13 @@ export default function SignInPage() {
         description: errorMessage,
         variant: 'destructive',
       });
-    } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Ensure loading is set to false on error
     }
+    // isLoading will remain true while splash screen is shown, then page navigates
+  }
+
+  if (showSplashScreen) {
+    return <SplashScreen />; // Display splash screen component
   }
 
   return (
@@ -129,16 +138,6 @@ export default function SignInPage() {
             </Button>
           </form>
         </Form>
-        {/* Removed Sign Up link section
-        <div className="mt-6 text-center text-sm">
-          Don&apos;t have an account?{' '}
-          <Link href="/signup" passHref legacyBehavior>
-            <a className="font-medium text-primary hover:underline">
-              Sign Up
-            </a>
-          </Link>
-        </div>
-        */}
       </CardContent>
     </Card>
   );
