@@ -9,7 +9,7 @@ export interface Warehouse {
 }
 
 export interface Item {
-  id: string;
+  id:string;
   warehouseId: string;
   name: string;
   quantity: number;
@@ -40,7 +40,7 @@ export interface HistoryEntry {
 
 export interface ArchivedReport {
   id: string; // e.g., itemID-timestamp or warehouseID-timestamp
-  reportType: 'ITEM' | 'WAREHOUSE';
+  reportType?: 'ITEM' | 'WAREHOUSE';
   warehouseId: string;
   warehouseName: string;
   itemId?: string; // Optional, only for item reports
@@ -49,4 +49,11 @@ export interface ArchivedReport {
   printedAt: string; // ISO string date of printing
   historySnapshot?: HistoryEntry[]; // Optional, only for item reports
   itemsSnapshot?: { name: string; quantity: number }[]; // Optional, only for warehouse reports
+}
+
+export interface UserProfile {
+  id: string;
+  username: string;
+  password?: string; // Stored as plain text for simulation
+  usernameChanged: boolean;
 }

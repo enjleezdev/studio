@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Warehouse, Package, ListChecks, Bot, Settings, Users, ChevronDown, ChevronUp, LogOut, FileText, Archive as ArchiveIcon } from "lucide-react";
+import { Home, Warehouse, Package, ListChecks, Bot, Settings, Users, ChevronDown, ChevronUp, LogOut, FileText, Archive as ArchiveIcon, UserCircle } from "lucide-react"; // Added UserCircle
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
@@ -20,12 +20,11 @@ import {
   SidebarGroupLabel,
   SidebarGroupContent,
   useSidebar,
+  SidebarTrigger, // Ensure SidebarTrigger is imported if used in layout.tsx
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-
-// MiniAppLogo definition removed as it's no longer used
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -50,10 +49,10 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r">
       <SidebarHeader className={cn(
-        "flex items-center h-14", // Base flex styles
-        state === 'collapsed' ? 'justify-center px-2' : 'px-4 justify-start gap-2' // Conditional alignment and gap
+        "flex items-center h-14",
+        state === 'collapsed' ? 'justify-center px-2' : 'px-4 justify-start gap-2'
       )}>
-        {/* Logo and brand name removed from sidebar header as per request */}
+        {/* Logo and brand name removed from sidebar header */}
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
@@ -96,12 +95,27 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={isActive("/profile")}
+              tooltip={state === "collapsed" ? "Profile" : undefined}
+              onClick={handleLinkClick}
+            >
+              <Link href="/profile">
+                <UserCircle />
+                <span>Profile</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
               isActive={isActive("/stocktake")}
               tooltip={state === "collapsed" ? "Stocktake" : undefined}
               onClick={handleLinkClick}
+              disabled // Assuming stocktake is not yet implemented
+              className="cursor-not-allowed opacity-50"
             >
               <Link href="/stocktake">
                 <ListChecks />
@@ -146,7 +160,7 @@ export function AppSidebar() {
               state === "collapsed" && "opacity-0 hidden"
             )}>
               <span className="text-sm font-medium text-sidebar-foreground">Admin User</span>
-              <span className="text-sm text-sidebar-foreground/70">admin@flowgistic.com</span>
+              <span className="text-sm text-sidebar-foreground/70">admin@ezinventory.com</span>
             </div>
           </div>
       </SidebarFooter>
