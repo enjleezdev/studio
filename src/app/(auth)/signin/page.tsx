@@ -18,6 +18,7 @@ import { auth } from '@/lib/firebase';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { Eye, EyeOff } from 'lucide-react';
 import { SplashScreen } from '@/components/SplashScreen';
+import { cn } from '@/lib/utils';
 
 const signInFormSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -26,12 +27,35 @@ const signInFormSchema = z.object({
 
 type SignInFormValues = z.infer<typeof signInFormSchema>;
 
+const SignInLogo = ({ className }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={cn("h-24 w-24 text-primary", className)} // Adjusted size for sign-in page
+  >
+    {/* Outer house outline */}
+    <path d="M3 21V10l9-6 9 6v11" />
+    {/* Inner workflow icon (simplified representation of connected rounded squares) */}
+    <g transform="translate(0 -1) scale(0.7) translate(4.25 4.25)"> {/* Scaled down and repositioned */}
+      <rect x="7" y="10" width="4.5" height="4.5" rx="1" strokeWidth="1.5"/>
+      <rect x="12.5" y="14.5" width="4.5" height="4.5" rx="1" strokeWidth="1.5"/>
+      <path d="M9.25 14.5v-2a1 1 0 0 1 1-1h2.25" strokeWidth="1.5"/>
+    </g>
+  </svg>
+);
+
+
 export default function SignInPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
-  const [showSplashScreen, setShowSplashScreen] = React.useState(false); // New state for splash screen
+  const [showSplashScreen, setShowSplashScreen] = React.useState(false);
 
   const form = useForm<SignInFormValues>({
     resolver: zodResolver(signInFormSchema),
@@ -49,9 +73,9 @@ export default function SignInPage() {
         title: 'Login Successful',
         description: 'Welcome back!',
       });
-      setShowSplashScreen(true); // Show splash screen
+      setShowSplashScreen(true);
       setTimeout(() => {
-        router.push('/warehouses'); // Redirect after 2.5 seconds
+        router.push('/warehouses');
       }, 2500);
     } catch (error: any) {
       console.error("Firebase sign-in error:", error);
@@ -66,20 +90,34 @@ export default function SignInPage() {
         description: errorMessage,
         variant: 'destructive',
       });
-      setIsLoading(false); // Ensure loading is set to false on error
+      setIsLoading(false);
     }
-    // isLoading will remain true while splash screen is shown, then page navigates
   }
 
   if (showSplashScreen) {
-    return <SplashScreen />; // Display splash screen component
+    return <SplashScreen />;
   }
 
   return (
     <Card className="w-full">
-      <CardHeader className="space-y-1 text-center">
-        <CardTitle className="text-2xl font-bold">Sign In to EZ Inventory</CardTitle>
-        <CardDescription>Enter your email and password to access your account.</CardDescription>
+      <CardHeader className="space-y-1 text-center items-center pb-4"> {/* Added items-center and pb-4 */}
+        <SignInLogo />
+        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl font-serif pt-2">
+          <span className="text-accent">EZ</span> <span className="text-red-400">Inventory</span>
+        </h1>
+        <p className="text-xs text-muted-foreground">
+          powered by{' '}
+          <a
+            href="https://www.enjleez.tech/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-red-400 hover:text-red-500 no-underline"
+          >
+            ENJLEEZ TECH
+          </a>
+        </p>
+        <CardTitle className="text-2xl font-bold pt-3">Sign In to EZ Inventory</CardTitle> {/* Moved CardTitle here */}
+        <CardDescription>Enter your email and password to access your account.</CardDescription> {/* Moved CardDescription here */}
       </CardHeader>
       <CardContent>
         <Form {...form}>
