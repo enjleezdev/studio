@@ -3,7 +3,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Warehouse, Package, ListChecks, Bot, Settings, Users, ChevronDown, ChevronUp, LogOut, FileText, Archive as ArchiveIcon, UserCircle } from "lucide-react";
+import * as React from "react"; // Import React for useState and useEffect
+import { Home, Warehouse, Package, FileText, Archive as ArchiveIcon, UserCircle, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
@@ -18,19 +19,49 @@ import {
   SidebarMenuSubButton,
   SidebarGroup,
   SidebarGroupLabel,
-  SidebarGroupContent,
+  SidebarGroupContent, // Ensure this is imported
   useSidebar,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import type { UserProfile }  from "@/lib/types";
 
-// Removed MiniAppLogo definition and usage from here
+const USER_PROFILE_LS_KEY = 'userProfileData';
 
 export function AppSidebar() {
   const pathname = usePathname();
   const { state, isMobile, setOpenMobile } = useSidebar();
+  const [profileUsername, setProfileUsername] = React.useState<string | null>("User");
+
+  React.useEffect(() => {
+    try {
+      const storedProfileString = localStorage.getItem(USER_PROFILE_LS_KEY);
+      if (storedProfileString) {
+        const profile = JSON.parse(storedProfileString) as UserProfile;
+        if (profile && profile.username) {
+          setProfileUsername(profile.username);
+        } else {
+          setProfileUsername("User"); // Fallback if username is not in profile
+        }
+      } else {
+         // Initialize a default profile if none exists, similar to profile page
+        const defaultProfile: UserProfile = {
+          id: 'default-user',
+          username: 'Admin',
+          password: 'password123', 
+          usernameChanged: false,
+        };
+        localStorage.setItem(USER_PROFILE_LS_KEY, JSON.stringify(defaultProfile));
+        setProfileUsername(defaultProfile.username);
+      }
+    } catch (error) {
+      console.error('Failed to load user profile for sidebar:', error);
+      setProfileUsername("User"); // Fallback on error
+    }
+  }, []);
+
 
   const isActive = (path: string) => {
     if (path.includes("[") && path.includes("]")) {
@@ -139,15 +170,15 @@ export function AppSidebar() {
             state === "collapsed" && "justify-center"
           )}>
             <Avatar className="size-8">
-              <AvatarImage src="https://placehold.co/40x40.png" alt="User" data-ai-hint="user avatar" />
-              <AvatarFallback>FP</AvatarFallback>
+              <AvatarImage src="https://placehold.co/40x40.png" alt="User" data-ai-hint="user avatar"/>
+              <AvatarFallback>{profileUsername ? profileUsername.substring(0, 2).toUpperCase() : 'FP'}</AvatarFallback>
             </Avatar>
             <div className={cn(
               "flex flex-col transition-[opacity]",
               state === "collapsed" && "opacity-0 hidden"
             )}>
-              <span className="text-sm font-medium text-sidebar-foreground">Admin User</span>
-              <span className="text-sm text-sidebar-foreground/70">admin@ezinventory.com</span>
+              <span className="text-sm font-medium text-sidebar-foreground">{profileUsername || "User"}</span>
+              {/* Email line removed as UserProfile type does not contain email */}
             </div>
           </div>
       </SidebarFooter>
