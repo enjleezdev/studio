@@ -9,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
 import ReactDOM from 'react-dom/client';
+import { arSA } from 'date-fns/locale';
 
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -19,13 +20,14 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, PackagePlus, PackageSearch, PlusCircle, MinusCircle, History as HistoryIcon, Printer, Trash2 } from 'lucide-react';
+import { ArrowLeft, PackagePlus, PackageSearch, PlusCircle, MinusCircle, History as HistoryIcon, Printer, Trash2, MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { EmptyState } from '@/components/EmptyState';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import type { Item, Warehouse, HistoryEntry, ArchivedReport } from '@/lib/types';
 import { PrintableItemReport } from '@/components/PrintableItemReport';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 
 const itemFormSchema = z.object({
@@ -36,6 +38,7 @@ const itemFormSchema = z.object({
     .number({ invalid_type_error: 'Quantity must be a number.' })
     .int('Quantity must be an integer.')
     .min(0, { message: 'Quantity must be a non-negative number.'}),
+  location: z.string().optional(),
 });
 
 type ItemFormValues = z.infer<typeof itemFormSchema>;
@@ -104,6 +107,7 @@ export default function WarehouseDetailPage() {
     defaultValues: {
       name: '',
       quantity: 1,
+      location: '',
     },
   });
 
@@ -155,7 +159,7 @@ export default function WarehouseDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [warehouseId, router, toast]); 
+  }, [warehouseId, router, toast, selectedItemForHistory?.id]); 
 
   React.useEffect(() => {
     if (warehouseId) {
@@ -183,6 +187,7 @@ export default function WarehouseDetailPage() {
       warehouseId: warehouseId,
       name: data.name,
       quantity: data.quantity,
+      location: data.location || undefined,
       createdAt: now,
       updatedAt: now,
       history: [initialHistoryEntry],
@@ -197,7 +202,7 @@ export default function WarehouseDetailPage() {
       
       toast({ title: "Item Added", description: `${newItem.name} has been added to ${warehouse?.name}.` });
       setIsAddItemDialogOpen(false); 
-      itemForm.reset({ name: '', quantity: 1 }); 
+      itemForm.reset({ name: '', quantity: 1, location: '' }); 
       loadWarehouseAndItems(); 
       updateWarehouseTimestamp(warehouseId);
     } catch (error) {
@@ -276,11 +281,9 @@ export default function WarehouseDetailPage() {
 
   const handlePrintReport = (itemToPrint: Item) => {
     if (!warehouse || !itemToPrint) {
-      console.error("Cannot print: Warehouse or Item data missing.", { warehouse, itemToPrint });
       toast({ title: "Print Error", description: "Warehouse or item data is missing.", variant: "destructive"});
       return;
     }
-    console.log("handlePrintReport called for item:", itemToPrint.name, "with history:", itemToPrint.history);
 
     const printableArea = document.createElement('div');
     printableArea.id = 'printable-report-area'; 
@@ -297,10 +300,6 @@ export default function WarehouseDetailPage() {
     );
 
     setTimeout(() => {
-      console.log("Attempting to print. Printable area content length:", printableArea.innerHTML.length);
-      if (printableArea.innerHTML.length < 50) { 
-          console.warn("Printable area seems empty or too short:", printableArea.innerHTML);
-      }
       window.print();
       
       setTimeout(() => {
@@ -433,13 +432,19 @@ export default function WarehouseDetailPage() {
               <TableBody>
                 {items.map((item) => (
                   <React.Fragment key={item.id}>
-                    <TableRow className={selectedItemForHistory?.id === item.id ? 'bg-muted/50 border-b-0' : ''}>
+                    <TableRow className={cn("hover:bg-muted/30", selectedItemForHistory?.id === item.id ? 'bg-muted/50 border-b-0' : '')}>
                       <TableCell className="py-3 px-4 align-top">
                         <div className="flex flex-col items-start gap-1">
                           <span className="font-semibold text-base break-words">{item.name}</span>
                           <span className="text-sm text-muted-foreground">
                             Quantity: {item.quantity}
                           </span>
+                          {item.location && (
+                            <div className="flex items-center text-xs text-muted-foreground mt-0.5">
+                                <MapPin className="h-3 w-3 mr-1.5" />
+                                <span>{item.location}</span>
+                            </div>
+                          )}
                           <div className="flex items-center gap-0.5 flex-wrap mt-1">
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -510,7 +515,7 @@ export default function WarehouseDetailPage() {
                                     <tbody>
                                         {[...(item.history || [])].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((entry) => (
                                         <tr key={entry.id} className="border-b border-border/50 last:border-b-0 hover:bg-muted/10 dark:hover:bg-muted/5">
-                                            <td className="py-1.5 px-3 whitespace-nowrap">{format(new Date(entry.timestamp), "PPpp")}</td>
+                                            <td className="py-1.5 px-3 whitespace-nowrap">{format(new Date(entry.timestamp), "P p", { locale: arSA })}</td>
                                             <td className="py-1.5 px-3 whitespace-nowrap">
                                             <span className={`px-2 py-0.5 rounded-full text-xs ${
                                                 entry.type === 'CREATE_ITEM' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' :
@@ -551,7 +556,7 @@ export default function WarehouseDetailPage() {
       <Dialog open={isAddItemDialogOpen} onOpenChange={(isOpen) => {
         setIsAddItemDialogOpen(isOpen);
         if (!isOpen) {
-            itemForm.reset({ name: '', quantity: 1 });
+            itemForm.reset({ name: '', quantity: 1, location: '' });
         }
       }}>
         <DialogContent className="sm:max-w-[425px]">
@@ -584,6 +589,19 @@ export default function WarehouseDetailPage() {
                     <FormLabel>Initial Quantity</FormLabel>
                     <FormControl>
                       <Input type="number" placeholder="e.g., 10" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={itemForm.control}
+                name="location"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Item Location (Optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Shelf A1, Rack B2" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
