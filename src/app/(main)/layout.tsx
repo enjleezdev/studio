@@ -33,7 +33,7 @@ export default function MainAppLayout({ children }: PropsWithChildren) {
       <AppSidebar />
       <SidebarInset className="flex flex-col">
         <MainHeader /> {/* Add the header with the mobile trigger */}
-        <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
+        <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto overflow-x-hidden"> {/* ADDED overflow-x-hidden HERE */}
          {children}
         </main>
       </SidebarInset>
