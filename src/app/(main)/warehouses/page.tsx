@@ -65,7 +65,7 @@ const AppLogoAndBrand = () => {
       </h1>
       <p className="mt-2 text-xs text-muted-foreground">
         powered by{" "}
-        <Link href="https://www.enjleez.tech/" target="_blank" rel="noopener noreferrer" className="font-medium text-red-500 hover:text-red-600 underline">
+        <Link href="https://www.enjleez.tech/" target="_blank" rel="noopener noreferrer" className="font-medium text-red-400 hover:text-red-500 no-underline">
           ENJLEEZ TECH
         </Link>
       </p>
@@ -325,4 +325,3 @@ export default function WarehousesPage() {
     </TooltipProvider>
   );
 }
-
