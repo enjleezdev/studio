@@ -5,7 +5,6 @@ import * as React from 'react';
 import ReactDOM from 'react-dom/client';
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Printer, Archive as ArchiveIcon, Package as PackageIcon, CalendarIcon } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
@@ -26,6 +25,8 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { PrintableItemReport } from '@/components/PrintableItemReport';
 import { PrintableWarehouseReport } from '@/components/PrintableWarehouseReport';
 import { PrintableTransactionsReport } from '@/components/PrintableTransactionsReport';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 
 interface FlattenedHistoryEntry extends HistoryEntry {
   itemName: string;
@@ -65,56 +66,76 @@ export default function ReportsPage() {
 
   const itemsInSelectedWarehouse = React.useMemo(() => {
     if (!selectedWarehouseId || selectedWarehouseId === "all_warehouses_option_value_placeholder_for_clear") {
-      return allItems.filter(item => !item.isArchived);
+      return allItems.filter(item => !item.isArchived); // Show all non-archived items if "All Warehouses" is selected
     }
     return allItems.filter(item => item.warehouseId === selectedWarehouseId && !item.isArchived);
   }, [selectedWarehouseId, allItems]);
 
   React.useEffect(() => {
-    setIsLoading(true);
-    try {
-      const storedWarehousesString = localStorage.getItem('warehouses');
-      const activeWarehouses: Warehouse[] = storedWarehousesString
-        ? JSON.parse(storedWarehousesString).filter((wh: Warehouse) => !wh.isArchived)
-        : [];
-      setAllWarehouses(activeWarehouses);
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch non-archived warehouses
+        const whQuery = query(collection(db, "warehouses"), where("isArchived", "==", false), orderBy("name"));
+        const whSnapshot = await getDocs(whQuery);
+        const warehousesFromFirestore = whSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as Warehouse));
+        setAllWarehouses(warehousesFromFirestore);
 
-      const storedItemsString = localStorage.getItem('items');
-      const activeItems: Item[] = storedItemsString
-        ? JSON.parse(storedItemsString).filter((item: Item) => !item.isArchived)
-        : [];
-      setAllItems(activeItems);
+        // Fetch non-archived items
+        const itemsQuery = query(collection(db, "items"), where("isArchived", "==", false));
+        const itemsSnapshot = await getDocs(itemsQuery);
+        const itemsFromFirestore = itemsSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            // Ensure history entries have timestamps converted if they are Firestore Timestamps
+            history: (data.history || []).map((h: any) => ({
+              ...h,
+              timestamp: h.timestamp?.toDate ? h.timestamp.toDate().toISOString() : h.timestamp,
+            })),
+          } as Item;
+        });
+        setAllItems(itemsFromFirestore);
 
-      const flattened: FlattenedHistoryEntry[] = [];
-      activeItems.forEach(item => {
-        const warehouse = activeWarehouses.find(wh => wh.id === item.warehouseId);
-        if (item.history && warehouse) {
-          item.history.forEach(entry => {
-            flattened.push({
-              ...entry,
-              itemName: item.name,
-              itemId: item.id,
-              warehouseName: warehouse.name,
-              warehouseId: warehouse.id,
+        // Flatten transactions
+        const flattened: FlattenedHistoryEntry[] = [];
+        itemsFromFirestore.forEach(item => {
+          const warehouse = warehousesFromFirestore.find(wh => wh.id === item.warehouseId);
+          if (item.history && warehouse) {
+            item.history.forEach(entry => {
+              flattened.push({
+                ...entry,
+                itemName: item.name,
+                itemId: item.id,
+                warehouseName: warehouse.name,
+                warehouseId: warehouse.id,
+              });
             });
-          });
+          }
+        });
+
+        flattened.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        setAllFlattenedTransactions(flattened);
+        setFilteredTransactions(flattened); // Initially show all
+
+        // Load archived reports from localStorage (remains the same)
+        const storedArchivedReportsString = localStorage.getItem('archivedReports');
+        if (storedArchivedReportsString) {
+          setArchivedReports(JSON.parse(storedArchivedReportsString));
         }
-      });
 
-      flattened.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      setAllFlattenedTransactions(flattened);
-      setFilteredTransactions(flattened); 
-
-      const storedArchivedReportsString = localStorage.getItem('archivedReports');
-      if (storedArchivedReportsString) {
-        setArchivedReports(JSON.parse(storedArchivedReportsString));
+      } catch (error) {
+        console.error("Failed to load data from Firestore for reports", error);
+        toast({ title: "Error", description: "Failed to load report data.", variant: "destructive" });
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error("Failed to load data from localStorage", error);
-      toast({ title: "Error", description: "Failed to load report data.", variant: "destructive" });
-    } finally {
-      setIsLoading(false);
-    }
+    };
+    loadData();
   }, [toast]);
 
   React.useEffect(() => {
@@ -126,7 +147,6 @@ export default function ReportsPage() {
         transactions = transactions.filter(t => t.itemId === selectedItemId);
       }
     } else if (selectedItemId && selectedItemId !== "all_items_option_value_placeholder_for_clear") {
-      // Filter by item only if warehouse is not selected or "All Warehouses" is selected
       transactions = transactions.filter(t => t.itemId === selectedItemId);
     }
 
@@ -164,7 +184,9 @@ export default function ReportsPage() {
   const getCurrentReportTitle = () => {
     let title = "All Transactions";
     const selectedWh = allWarehouses.find(w => w.id === selectedWarehouseId);
+    // Ensure allItems is used here, as itemsInSelectedWarehouse might be empty
     const selectedItmObj = allItems.find(i => i.id === selectedItemId);
+
 
     if (selectedWh) {
       title = `Transactions for ${selectedWh.name}`;
@@ -172,8 +194,10 @@ export default function ReportsPage() {
         title += ` - ${selectedItmObj.name}`;
       }
     } else if (selectedItmObj) {
+         // If only an item is selected (meaning "All Warehouses" or no warehouse filter)
       title = `Transactions for ${selectedItmObj.name} (All Warehouses)`;
     }
+
 
     if (startDate || endDate) {
       let dateRange = '';
@@ -321,7 +345,10 @@ export default function ReportsPage() {
                   <Select
                     onValueChange={handleItemChange}
                     value={selectedItemId || "all_items_option_value_placeholder_for_clear"}
-                    disabled={itemsInSelectedWarehouse.length === 0 && !!selectedWarehouseId && selectedWarehouseId !== "all_warehouses_option_value_placeholder_for_clear"}
+                    disabled={
+                        selectedWarehouseId === null && // Disabled if "All Warehouses" is selected and we don't want to show all items globally
+                        itemsInSelectedWarehouse.length === 0 // Or if the selected warehouse has no items.
+                    }
                   >
                     <SelectTrigger id="item-select-modal" className="w-full">
                       <SelectValue placeholder={
@@ -417,10 +444,10 @@ export default function ReportsPage() {
                       IconComponent={PackageIcon}
                       title="No Transactions Found"
                       description="No transactions match your current selection, or no transactions have been recorded yet."
-                      className="my-4"
+                      className="my-4" // Keep some margin for better centering in the dialog content area
                     />
                   ) : (
-                    <table className="text-xs border-collapse">
+                    <table className="text-xs border-collapse min-w-full">
                       <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
                         <tr>
                           <th className="py-3 px-4 text-left font-medium text-muted-foreground whitespace-nowrap">Date</th>
@@ -502,7 +529,7 @@ export default function ReportsPage() {
                         className="my-4"
                       />
                     ) : (
-                      <table className="text-xs border-collapse">
+                      <table className="text-xs border-collapse min-w-full">
                         <thead className="sticky top-0 bg-background/90 dark:bg-card/80 backdrop-blur-sm z-10">
                           <tr>
                             <th className="py-3 px-4 text-left font-medium text-muted-foreground break-words">Report For</th>
@@ -544,6 +571,8 @@ export default function ReportsPage() {
     </>
   );
 }
+    
+
     
 
     
