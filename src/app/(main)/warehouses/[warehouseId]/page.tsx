@@ -10,6 +10,8 @@ import * as z from 'zod';
 import { format } from 'date-fns';
 import ReactDOM from 'react-dom/client';
 import { arSA } from 'date-fns/locale';
+import { doc, getDoc, collection, addDoc, updateDoc, arrayUnion, serverTimestamp, query, where, getDocs, Timestamp } from 'firebase/firestore';
+
 
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -19,7 +21,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ArrowLeft, PackagePlus, PackageSearch, PlusCircle, MinusCircle, History as HistoryIcon, Printer, Trash2, MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { EmptyState } from '@/components/EmptyState';
@@ -28,6 +29,7 @@ import type { Item, Warehouse, HistoryEntry, ArchivedReport } from '@/lib/types'
 import { PrintableItemReport } from '@/components/PrintableItemReport';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { db } from '@/lib/firebase';
 
 
 const itemFormSchema = z.object({
@@ -64,23 +66,19 @@ const translateHistoryType = (type: HistoryEntry['type']): string => {
     case 'ADJUST_STOCK':
       return 'Stock Adjusted';
     default:
-      return type.replace('_', ' ');
+      return type.replace(/_/g, ' ');
   }
 };
 
-const updateWarehouseTimestamp = (currentWarehouseId: string) => {
+const updateWarehouseTimestampInFirestore = async (warehouseId: string) => {
   try {
-    const storedWarehousesString = localStorage.getItem('warehouses');
-    if (storedWarehousesString) {
-      let warehouses: Warehouse[] = JSON.parse(storedWarehousesString);
-      const warehouseIndex = warehouses.findIndex(wh => wh.id === currentWarehouseId);
-      if (warehouseIndex > -1) {
-        warehouses[warehouseIndex].updatedAt = new Date().toISOString();
-        localStorage.setItem('warehouses', JSON.stringify(warehouses));
-      }
-    }
+    const warehouseDocRef = doc(db, "warehouses", warehouseId);
+    await updateDoc(warehouseDocRef, {
+      updatedAt: serverTimestamp(),
+    });
   } catch (error) {
-    console.error("Failed to update warehouse timestamp in localStorage", error);
+    console.error("Failed to update warehouse timestamp in Firestore", error);
+    // Optionally, show a toast for this error if it's critical for user feedback
   }
 };
 
@@ -89,7 +87,7 @@ export default function WarehouseDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
-  const warehouseId = params.warehouseId as string;
+  const warehouseIdFromParams = params.warehouseId as string;
 
   const [warehouse, setWarehouse] = React.useState<Warehouse | null>(null);
   const [items, setItems] = React.useState<Item[]>([]);
@@ -119,33 +117,64 @@ export default function WarehouseDetailPage() {
     },
   });
 
-  const loadWarehouseAndItems = React.useCallback(() => {
+  const loadWarehouseAndItems = React.useCallback(async (idToLoad: string) => {
+    if (!idToLoad) {
+      // This case should ideally be handled by routing or a higher-level check
+      toast({ title: "Error", description: "Warehouse ID is missing.", variant: "destructive" });
+      router.push('/warehouses');
+      return;
+    }
     setIsLoading(true);
     try {
-      const storedWarehousesString = localStorage.getItem('warehouses');
-      if (storedWarehousesString) {
-        const storedWarehouses: Warehouse[] = JSON.parse(storedWarehousesString);
-        const foundWarehouse = storedWarehouses.find(wh => wh.id === warehouseId);
-        if (foundWarehouse) {
-          setWarehouse(foundWarehouse);
-        } else {
-          toast({ title: "Error", description: "Warehouse not found.", variant: "destructive" });
+      const warehouseDocRef = doc(db, "warehouses", idToLoad);
+      const docSnap = await getDoc(warehouseDocRef);
+
+      if (!docSnap.exists() || docSnap.data().isArchived) {
+        toast({
+          title: "Warehouse Not Found",
+          description: `The requested warehouse (ID: ${idToLoad}) does not exist or has been archived. You will be redirected.`,
+          variant: "destructive",
+          duration: 4000,
+        });
+        setTimeout(() => {
           router.push('/warehouses');
-          return;
-        }
-      } else {
-         toast({ title: "Error", description: "No warehouses found in storage.", variant: "destructive" });
-         router.push('/warehouses');
-         return;
+        }, 1500);
+        setWarehouse(null);
+        setItems([]);
+        setIsLoading(false);
+        return;
       }
 
-      const storedItemsString = localStorage.getItem('items');
-      let allItems: Item[] = [];
-      if (storedItemsString) {
-        allItems = JSON.parse(storedItemsString);
-      }
+      const warehouseData = docSnap.data() as Omit<Warehouse, 'id' | 'createdAt' | 'updatedAt'> & { createdAt: Timestamp, updatedAt: Timestamp };
+      setWarehouse({
+        id: docSnap.id,
+        name: warehouseData.name,
+        description: warehouseData.description,
+        isArchived: warehouseData.isArchived,
+        createdAt: warehouseData.createdAt.toDate().toISOString(),
+        updatedAt: warehouseData.updatedAt.toDate().toISOString(),
+      });
       
-      const warehouseItems = allItems.filter(item => item.warehouseId === warehouseId && !item.isArchived);
+      const itemsQuery = query(
+        collection(db, "items"),
+        where("warehouseId", "==", idToLoad),
+        where("isArchived", "==", false)
+      );
+      const itemsSnapshot = await getDocs(itemsQuery);
+      const warehouseItems = itemsSnapshot.docs.map(itemDoc => {
+        const itemData = itemDoc.data();
+        return {
+          id: itemDoc.id,
+          ...itemData,
+          // Ensure history entries have timestamps converted if they are Firestore Timestamps
+          history: (itemData.history || []).map((h: any) => ({
+            ...h,
+            timestamp: h.timestamp?.toDate ? h.timestamp.toDate().toISOString() : h.timestamp,
+          })),
+          createdAt: itemData.createdAt?.toDate?.().toISOString() || new Date().toISOString(),
+          updatedAt: itemData.updatedAt?.toDate?.().toISOString() || new Date().toISOString(),
+        } as Item;
+      });
       setItems(warehouseItems);
 
       if (selectedItemForHistory) {
@@ -154,59 +183,56 @@ export default function WarehouseDetailPage() {
       }
 
     } catch (error) {
-      console.error("Failed to load data from localStorage", error);
-      toast({ title: "Error", description: "Failed to load data.", variant: "destructive" });
+      console.error("Failed to load data from Firestore", error);
+      toast({ title: "Error", description: "Failed to load warehouse data.", variant: "destructive" });
+      // Potentially redirect if critical data can't be loaded
+       router.push('/warehouses');
     } finally {
       setIsLoading(false);
     }
-  }, [warehouseId, router, toast, selectedItemForHistory?.id]); 
+  }, [router, toast, selectedItemForHistory?.id]); // Removed selectedItemForHistory from dep array if it causes re-runs without data change
 
   React.useEffect(() => {
-    if (warehouseId) {
-      loadWarehouseAndItems();
+    if (warehouseIdFromParams) {
+      loadWarehouseAndItems(warehouseIdFromParams);
     }
-  }, [warehouseId, loadWarehouseAndItems]);
+  }, [warehouseIdFromParams, loadWarehouseAndItems]);
 
 
-  function onAddItemSubmit(data: ItemFormValues) {
-    if (!warehouseId) return;
+ async function onAddItemSubmit(data: ItemFormValues) {
+    if (!warehouseIdFromParams || !warehouse) return;
 
-    const now = new Date().toISOString();
+    const now = new Date();
     const initialHistoryEntry: HistoryEntry = {
-      id: Date.now().toString() + '-hist-create',
+      id: Date.now().toString() + '-hist-create', // Consider more robust ID generation
       type: 'CREATE_ITEM',
       change: data.quantity,
       quantityBefore: 0,
       quantityAfter: data.quantity,
-      timestamp: now,
+      timestamp: now.toISOString(),
       comment: 'Initial item creation',
     };
 
-    const newItem: Item = {
-      id: Date.now().toString(),
-      warehouseId: warehouseId,
+    const newItemData = {
+      warehouseId: warehouseIdFromParams,
       name: data.name,
       quantity: data.quantity,
-      location: data.location || undefined,
-      createdAt: now,
-      updatedAt: now,
-      history: [initialHistoryEntry],
+      location: data.location || '',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      history: [initialHistoryEntry], // Store history directly
       isArchived: false,
     };
 
     try {
-      const existingItemsString = localStorage.getItem('items');
-      const existingItems: Item[] = existingItemsString ? JSON.parse(existingItemsString) : [];
-      existingItems.push(newItem);
-      localStorage.setItem('items', JSON.stringify(existingItems));
-      
-      toast({ title: "Item Added", description: `${newItem.name} has been added to ${warehouse?.name}.` });
+      await addDoc(collection(db, "items"), newItemData);
+      toast({ title: "Item Added", description: `${data.name} has been added to ${warehouse?.name}.` });
       setIsAddItemDialogOpen(false); 
       itemForm.reset({ name: '', quantity: 1, location: '' }); 
-      loadWarehouseAndItems(); 
-      updateWarehouseTimestamp(warehouseId);
+      loadWarehouseAndItems(warehouseIdFromParams); // Reload to reflect changes
+      updateWarehouseTimestampInFirestore(warehouseIdFromParams);
     } catch (error) {
-      console.error("Failed to save item to localStorage", error);
+      console.error("Failed to save item to Firestore", error);
       toast({ title: "Error", description: "Failed to save item. Please try again.", variant: "destructive" });
     }
   }
@@ -218,8 +244,8 @@ export default function WarehouseDetailPage() {
     setIsStockAdjustmentDialogOpen(true);
   };
 
-  function onStockAdjustmentSubmit(data: StockAdjustmentFormValues) {
-    if (!itemForAdjustment || !adjustmentType || !warehouseId) return;
+  async function onStockAdjustmentSubmit(data: StockAdjustmentFormValues) {
+    if (!itemForAdjustment || !adjustmentType || !warehouseIdFromParams) return;
 
     const quantityChange = adjustmentType === 'ADD_STOCK' ? data.adjustmentQuantity : -data.adjustmentQuantity;
     
@@ -231,42 +257,33 @@ export default function WarehouseDetailPage() {
       return;
     }
 
-    const now = new Date().toISOString();
+    const now = new Date();
     const newHistoryEntry: HistoryEntry = {
       id: Date.now().toString() + '-hist-adjust',
       type: adjustmentType,
       change: quantityChange,
       quantityBefore: itemForAdjustment.quantity,
       quantityAfter: itemForAdjustment.quantity + quantityChange,
-      timestamp: now,
+      timestamp: now.toISOString(),
       comment: data.comment || (adjustmentType === 'ADD_STOCK' ? 'Stock added' : 'Stock consumed'),
     };
 
-    const updatedItem: Item = {
-      ...itemForAdjustment,
-      quantity: itemForAdjustment.quantity + quantityChange,
-      updatedAt: now,
-      history: [...(itemForAdjustment.history || []), newHistoryEntry],
-    };
+    const itemDocRef = doc(db, "items", itemForAdjustment.id);
 
     try {
-      const existingItemsString = localStorage.getItem('items');
-      const existingItems: Item[] = existingItemsString ? JSON.parse(existingItemsString) : [];
-      const itemIndex = existingItems.findIndex(i => i.id === updatedItem.id);
+      await updateDoc(itemDocRef, {
+        quantity: itemForAdjustment.quantity + quantityChange,
+        updatedAt: serverTimestamp(),
+        history: arrayUnion(newHistoryEntry) // Atomically add to history array
+      });
 
-      if (itemIndex > -1) {
-        existingItems[itemIndex] = updatedItem;
-        localStorage.setItem('items', JSON.stringify(existingItems));
-        toast({ title: "Stock Updated", description: `Stock for ${updatedItem.name} has been updated.` });
-        setIsStockAdjustmentDialogOpen(false);
-        stockAdjustmentForm.reset();
-        loadWarehouseAndItems();
-        updateWarehouseTimestamp(warehouseId);
-      } else {
-        toast({ title: "Error", description: "Item not found for update.", variant: "destructive" });
-      }
+      toast({ title: "Stock Updated", description: `Stock for ${itemForAdjustment.name} has been updated.` });
+      setIsStockAdjustmentDialogOpen(false);
+      stockAdjustmentForm.reset();
+      loadWarehouseAndItems(warehouseIdFromParams); // Reload
+      updateWarehouseTimestampInFirestore(warehouseIdFromParams);
     } catch (error) {
-      console.error("Failed to update item stock in localStorage", error);
+      console.error("Failed to update item stock in Firestore", error);
       toast({ title: "Error", description: "Failed to update stock. Please try again.", variant: "destructive" });
     }
   }
@@ -344,39 +361,34 @@ export default function WarehouseDetailPage() {
     }, 250); 
   };
 
-  const handleArchiveItem = () => {
-    if (!itemToArchive || !warehouseId) return;
-
+  const handleArchiveItem = async () => {
+    if (!itemToArchive || !warehouseIdFromParams) return;
+    const itemDocRef = doc(db, "items", itemToArchive.id);
     try {
-      const existingItemsString = localStorage.getItem('items');
-      let allItems: Item[] = existingItemsString ? JSON.parse(existingItemsString) : [];
-      
-      const itemIndex = allItems.findIndex(i => i.id === itemToArchive.id);
-      if (itemIndex > -1) {
-        allItems[itemIndex] = { ...allItems[itemIndex], isArchived: true, updatedAt: new Date().toISOString() };
-        localStorage.setItem('items', JSON.stringify(allItems));
-        
-        toast({ title: "Item Archived", description: `${itemToArchive.name} has been moved to the archive.` });
-        setItemToArchive(null); 
-        loadWarehouseAndItems(); 
-        updateWarehouseTimestamp(warehouseId);
-      } else {
-        toast({ title: "Error", description: "Item not found for archiving.", variant: "destructive" });
-      }
+      await updateDoc(itemDocRef, {
+        isArchived: true,
+        updatedAt: serverTimestamp()
+      });
+      toast({ title: "Item Archived", description: `${itemToArchive.name} has been moved to the archive.` });
+      setItemToArchive(null); 
+      loadWarehouseAndItems(warehouseIdFromParams); 
+      updateWarehouseTimestampInFirestore(warehouseIdFromParams);
     } catch (error) {
-      console.error("Failed to archive item in localStorage", error);
+      console.error("Failed to archive item in Firestore", error);
       toast({ title: "Error", description: "Failed to archive item.", variant: "destructive" });
     }
   };
 
-  if (isLoading) {
-    return <LoadingSpinner className="mx-auto my-10" size={48} />;
+  if (isLoading && !warehouse) { // Show full page loader only if warehouse is not yet loaded
+    return <div className="flex justify-center items-center h-[calc(100vh-200px)]"><LoadingSpinner size={48} /></div>;
   }
 
   if (!warehouse) {
+    // This state could be reached if warehouseId is invalid and redirect is pending or if loading failed critically
+    // The toast and redirect in loadWarehouseAndItems should handle this, but this is a fallback.
     return (
        <div className="flex h-full w-full items-center justify-center">
-         <p>Warehouse not found or an error occurred.</p>
+         <p>Warehouse data could not be loaded. You may be redirected shortly.</p>
        </div>
     );
   }
@@ -405,13 +417,14 @@ export default function WarehouseDetailPage() {
         }
       />
       
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader>
           <CardTitle>Inventory Items</CardTitle>
           <CardDescription>All items currently stored in {warehouse.name}.</CardDescription>
         </CardHeader>
         <CardContent>
-          {items.length === 0 ? (
+          {isLoading && items.length === 0 ? <div className="flex justify-center py-4"><LoadingSpinner/></div> :
+          items.length === 0 ? (
             <EmptyState
               IconComponent={PackageSearch}
               title="No Items Yet"
@@ -495,7 +508,7 @@ export default function WarehouseDetailPage() {
                     {selectedItemForHistory?.id === item.id && item.history && (
                        <TableRow className="bg-muted/20 hover:bg-muted/30">
                          <TableCell className="p-0 overflow-hidden">
-                           <div className="h-full w-full overflow-auto"> 
+                           <div className="w-full overflow-auto max-h-[300px]"> 
                              <div className="p-4 space-y-3"> 
                                 <h4 className="text-md font-semibold text-foreground text-left">
                                 Transaction History: <span className="font-bold">{item.name}</span>
@@ -515,7 +528,7 @@ export default function WarehouseDetailPage() {
                                     <tbody>
                                         {[...(item.history || [])].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((entry) => (
                                         <tr key={entry.id} className="border-b border-border/50 last:border-b-0 hover:bg-muted/10 dark:hover:bg-muted/5">
-                                            <td className="py-1.5 px-3 whitespace-nowrap">{format(new Date(entry.timestamp), "P p", { locale: arSA })}</td>
+                                            <td className="py-1.5 px-3 whitespace-nowrap">{format(new Date(entry.timestamp), "P p")}</td>
                                             <td className="py-1.5 px-3 whitespace-nowrap">
                                             <span className={`px-2 py-0.5 rounded-full text-xs ${
                                                 entry.type === 'CREATE_ITEM' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200' :
@@ -695,3 +708,5 @@ export default function WarehouseDetailPage() {
     </TooltipProvider>
   );
 }
+
+    
