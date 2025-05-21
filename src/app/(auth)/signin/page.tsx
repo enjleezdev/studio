@@ -12,7 +12,7 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Removed CardDescription as it's not used
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -26,30 +26,6 @@ const signInFormSchema = z.object({
 });
 
 type SignInFormValues = z.infer<typeof signInFormSchema>;
-
-// Updated SignInLogo to match the AppLogo from warehouses page
-const SignInLogo = ({ className }: { className?: string }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5" // Matched strokeWidth
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={cn("h-24 w-24 text-primary", className)} // Adjusted size for sign-in page
-  >
-    {/* Outer house outline - same as AppLogo */}
-    <path d="M3 21V10l9-6 9 6v11" />
-    {/* Inner workflow icon (simplified representation of connected rounded squares) - same as AppLogo */}
-    <g transform="translate(0 -1) scale(0.7) translate(4.25 4.25)"> {/* Scaled down and repositioned to match AppLogo's internal scaling */}
-      <rect x="7" y="10" width="4.5" height="4.5" rx="1" strokeWidth="1.5"/>
-      <rect x="12.5" y="14.5" width="4.5" height="4.5" rx="1" strokeWidth="1.5"/>
-      <path d="M9.25 14.5v-2a1 1 0 0 1 1-1h2.25" strokeWidth="1.5"/>
-    </g>
-  </svg>
-);
-
 
 export default function SignInPage() {
   const router = useRouter();
@@ -102,7 +78,7 @@ export default function SignInPage() {
   return (
     <Card className="w-full">
       <CardHeader className="space-y-1 text-center items-center pb-4">
-        <SignInLogo />
+        {/* Logo removed from here */}
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl font-serif pt-2">
           <span className="text-accent">EZ</span> <span className="text-red-400">Inventory</span>
         </h1>
